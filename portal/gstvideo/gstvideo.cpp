@@ -161,7 +161,6 @@ static void make_window( Display *dpy, const char *name,int x, int y, int width,
 	attribs[i++] = GLX_DEPTH_SIZE;
 	attribs[i++] = 1;
 
-
 	attribs[i++] = None;
 
 	scrnum = DefaultScreen( dpy );
@@ -321,14 +320,16 @@ void start_pipeline(int input){
 
 
 
-
+static int video_mode_requested = 8;
+static int video_mode_current = -1;
+static int portal_mode_requested = 1;
+	
 static gboolean idle_loop (gpointer data) {
 	
 	
-	static int video_mode_requested = 7;
-	static int video_mode_current = -1;
 	
-	static int portal_mode_requested = 1;
+	
+	
 
 	static int accleration[3];
 	

@@ -8,15 +8,17 @@
 #include <unistd.h>
 #include <stdexcept>
 
+
 #include <gst/gst.h>
 #include <gst/gl/gl.h>
+
 
 #include "png_texture.h"
 
 #define CHECK_BIT(var,pos) ((var) & (1<<(pos)))
 
 int last_acceleration[2] = {0,0};
-static GLuint orange_1,blue_n,orange_n,orange_0,blue_0,blue_1,texture_orange,texture_blue;
+static GLuint orange_1,blue_n,orange_n,orange_0,blue_0,blue_1,texture_orange,texture_blue,circle64;
 float portal_spin = 0;
 float event_horizon_spin = 0;
 
@@ -58,14 +60,14 @@ static void draw_torus(GLfloat r, GLfloat R, GLint nsides, GLint rings){
 		cosTheta1 = cos(theta1);
 		sinTheta1 = sin(theta1);
 
-	    glBegin(GL_QUAD_STRIP); 
+		glBegin(GL_QUAD_STRIP); 
 
 		phi = 0.0;
 		
 		int index_deg = (360 - portal_spin + ( theta1 * 360  / (2*M_PI)));
 		
 		while (index_deg >= 360) index_deg -=360;
-				
+		
 		r_using = r+ offset_thing[index_deg];
 		R_using = R- offset_thing[index_deg];
 		
@@ -77,7 +79,7 @@ static void draw_torus(GLfloat r, GLfloat R, GLint nsides, GLint rings){
 			
 			cosPhi = cos(phi);
 			cosPhi = cos(phi);
-						
+			
 			sinPhi = sin(phi);
 			dist = R_using + r_using * cosPhi;
 			
@@ -85,7 +87,7 @@ static void draw_torus(GLfloat r, GLfloat R, GLint nsides, GLint rings){
 			s1 = 20.0 * theta1 / (2.0 * M_PI);
 			t = 2.0 * phi / (2.0 * M_PI);  //this seems to control texture wrap around the nut
 
-		    //glNormal3f(cosTheta1 * cosPhi, -sinTheta1 * cosPhi, sinPhi);
+			//glNormal3f(cosTheta1 * cosPhi, -sinTheta1 * cosPhi, sinPhi);
 			glTexCoord2f( s0, t - donut_texture_scrolling);
 			glVertex3f( cosTheta1 * dist, -sinTheta1 * dist, r_using * sinPhi);
 
@@ -197,7 +199,7 @@ void model_board_animate(int acceleration[], int frame){
 	
 	//this controls making the portal fade into the backgroud video
 	if CHECK_BIT(frame,0){
-			event_horizon_transparency_level = 1.0;
+		event_horizon_transparency_level = 1.0;
 	}else{
 		//wait for zoom to finish before fading to background
 		if (event_horizon_transparency_level == 1.0 and global_zoom >= 0.5){ //wait for portal to be open a bit before unfading
@@ -247,12 +249,22 @@ void model_board_init(void)
 	texture_orange = png_texture_load( "assets/orange_portal.png", NULL, NULL);
 	texture_blue   = png_texture_load( "assets/blue_portal.png",   NULL, NULL);
 	
-	if (orange_n == 0 || blue_n == 0 || texture_orange == 0 || texture_blue == 0 || orange_0 == 0 || orange_1 == 0 || blue_0 == 0 || blue_1 == 0)
+	circle64 = png_texture_load( "assets/circle64.png", NULL, NULL);
+	
+	if (orange_n == 0 || blue_n == 0 || texture_orange == 0 || texture_blue == 0 || orange_0 == 0 || orange_1 == 0 || blue_0 == 0 || blue_1 == 0 || circle64 == 0)
 	{
 		throw std::runtime_error("Loading textures failed.");
 	}
 
 
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND); 
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
+	glEnable(GL_TEXTURE_2D);
+	glEnable(GL_TEXTURE0);	
+	glTexEnvi(GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE);
+	glActiveTexture(GL_TEXTURE0);
+	
 	video_quad_vertex_list = glGenLists( 1 );
 	glNewList( video_quad_vertex_list, GL_COMPILE );
 	#define VIDEO_DEPTH -0.003
@@ -289,7 +301,7 @@ void model_board_init(void)
 	glEnd( );
 	glEndList();
 	
-    portal_vertex_list = glGenLists( 1 );
+	portal_vertex_list = glGenLists( 1 );
 	glNewList( portal_vertex_list, GL_COMPILE );
 	//#define PORTAL_DEPTH -1.6
 	#define PORTAL_DEPTH 0
@@ -304,17 +316,12 @@ void model_board_init(void)
 }
 
 
-
+static float zshuffle = -3;
 void model_board_redraw(GLuint video_texture, int frame){	
 
 	//RESTART - CHECK IF I NEED TO SET ALL OF THESE EACH CYCLE!
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_BLEND); 
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
-	glEnable(GL_TEXTURE_2D);
-	glEnable(GL_TEXTURE0);	
-	glActiveTexture(GL_TEXTURE0);
+
 	
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -323,13 +330,12 @@ void model_board_redraw(GLuint video_texture, int frame){
 	glPushMatrix();
 	
 	//global scale
-    glScalef(global_zoom,global_zoom,1.0);   //maybe use a Z zoom?
+	glScalef(global_zoom,global_zoom,1.0);   //maybe use a Z zoom?
 	
 	//VIDEO QUAD
 	glBindTexture (GL_TEXTURE_2D, video_texture); //video frame from gstreamer
 	glColor4f(1.0,1.0,1.0,1.0); //video is not transparent at all
 	glCallList(video_quad_vertex_list);
-	glBindTexture(GL_TEXTURE_2D, 0); 
 	
 	//EVENT HORIZON QUAD
 	glPushMatrix(); //save positions pre-rotation
@@ -355,17 +361,30 @@ void model_board_redraw(GLuint video_texture, int frame){
 	glColor4f(1.0,1.0,1.0,1.0); //portal texture is not transparent
 	glScalef(1.0*720/480,1.0,1.0);  //stretch portal to an oval
 	glRotatef(portal_spin, 0, 0, 1); //make it spin
-    glCallList(portal_vertex_list);
+	glCallList(portal_vertex_list);
 	
 	//TEXTURED TORUS
 	CHECK_BIT(frame,1) ? glBindTexture(GL_TEXTURE_2D, orange_n) : glBindTexture(GL_TEXTURE_2D, blue_n);
 	draw_torus(1.4 , 9.8 , 30, 60);
 	donut_texture_scrolling+=.05;
 	
-	glPopMatrix(); //un-rotate and unscale the portal
-	glPopMatrix();  //unscale the global
-	
-	
+	//POINT SPRITES
+	glBindTexture(GL_TEXTURE_2D, circle64);
 	
 
+	glPointSize(20.0f);
+	glEnable(GL_POINT_SPRITE_ARB);
+
+	glBegin(GL_POINTS);
+	glVertex3f(zshuffle,zshuffle,zshuffle);
+	glEnd();
+	
+	
+	glDisable( GL_POINT_SPRITE_ARB );
+	glPopMatrix(); //un-rotate and unscale the portal
+	glPopMatrix(); //unscale the global
+	
+	
+	zshuffle += .05;
+	if (zshuffle > 3) (zshuffle = -3);
 }
