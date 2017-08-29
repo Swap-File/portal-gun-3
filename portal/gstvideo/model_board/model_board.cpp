@@ -15,22 +15,21 @@
 
 #define CHECK_BIT(var,pos) ((var) & (1<<(pos)))
 
-#define EX 20     // X dimension
-#define EY 20     // Y dimension
 int last_acceleration[2] = {0,0};
 static GLuint orange_1,blue_n,orange_n,orange_0,blue_0,blue_1,texture_orange,texture_blue;
 float portal_spin = 0;
 float portal_background_spin = 0;
-float portal_background_fader = 0;
-float portal_spin2 = 0;
-float closed_fader = 0;
-int close_processed = 999; //impossible value to force process on boot
 
-float blank_fader = 0;
-int  blank_processed = 999; //impossible value to force process on boot
+float event_horizon_vertex_list_shimmer = 0;
+bool event_horizon_vertex_list_shimmer_direction = true;
+
+float event_horizon_transparency_level = 0;
+
+float global_zoom = 0;
 
 int lastcolor = -1;
-GLfloat texturescroller = 0.0;
+GLfloat donut_texture_scrolling = 0.0;
+
 static void Normal(GLfloat *n, GLfloat nx, GLfloat ny, GLfloat nz){
 	n[0] = nx;
 	n[1] = ny;
@@ -45,7 +44,7 @@ static void Vertex(GLfloat *v, GLfloat vx, GLfloat vy, GLfloat vz){
 
 static void Texcoord(GLfloat *v, GLfloat s, GLfloat t){
 	v[0] = s ;
-	v[1] = t- texturescroller;
+	v[1] = t- donut_texture_scrolling;
 }
 float offset_thing[360];
 float running_magnitude;
@@ -91,13 +90,13 @@ static void draw_torus(GLfloat r, GLfloat R, GLint nsides, GLint rings){
 		
 		r_using = r+ offset_thing[index_deg];
 		R_using = R- offset_thing[index_deg];
-			
+		
 		for (j = nsides; j >= 0; j--) {
 			GLfloat s0, s1, t;
 			GLfloat cosPhi, sinPhi, dist;
 
 			phi += sideDelta;
-		
+			
 			
 			cosPhi = cos(phi);
 			cosPhi = cos(phi);
@@ -133,90 +132,16 @@ static void draw_torus(GLfloat r, GLfloat R, GLint nsides, GLint rings){
 
 }
 
-
-void model_board_init(void)
-{
-	for (int i = 0; i <  360; i ++){
-		//offset_thing[i] = sin(((float)i)/360.0 * M_PI);
-		offset_thing[i] = 3;
-	}
-	
-	orange_n = png_texture_load( "assets/orange_n.png", NULL, NULL);
-	//override default of clamp
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	blue_n = png_texture_load( "assets/blue_n.png", NULL, NULL);
-	//override default of clamp
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	
-	orange_0 = png_texture_load( "assets/orange_0.png", NULL, NULL);
-	orange_1 = png_texture_load( "assets/orange_1.png", NULL, NULL);
-
-	blue_0 = png_texture_load( "assets/blue_0.png", NULL, NULL);
-	blue_1 = png_texture_load( "assets/blue_1.png", NULL, NULL);
-	
-	texture_orange = png_texture_load( "assets/orange_portal.png", NULL, NULL);
-	texture_blue = png_texture_load( "assets/blue_portal.png", NULL, NULL);
-	
-	if (orange_n == 0 || blue_n == 0 || texture_orange == 0 || texture_blue == 0 || orange_0 == 0 || orange_1 == 0 || blue_0 == 0 || blue_1 == 0)
-	{
-		throw std::runtime_error("Loading textures failed.");
-	}
-	
-	//setup texture unit 0 
-	glActiveTexture(GL_TEXTURE0);	
-	glTexEnvi (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
-	GLfloat rgba[4] = {1.0,1.0,1.0,0.0};
-	glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, rgba);
-	//use the texture's color, no blending
-	glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_INTERPOLATE);
-	glTexEnvi(GL_TEXTURE_ENV, GL_SRC0_RGB, GL_PREVIOUS);
-	glTexEnvi(GL_TEXTURE_ENV, GL_SRC1_RGB, GL_TEXTURE);
-	//glTexEnvi(GL_TEXTURE_ENV, GL_SRC2_RGB, GL_PRIMARY_COLOR);
-	glTexEnvi(GL_TEXTURE_ENV, GL_SRC2_RGB, GL_CONSTANT);
-	glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR);
-	glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR);
-	//use the texture's alpha channel
-	glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_REPLACE);
-	glTexEnvi(GL_TEXTURE_ENV, GL_SRC0_ALPHA, GL_PRIMARY_COLOR);
-	glTexEnvi(GL_TEXTURE_ENV, GL_SRC1_ALPHA, GL_PRIMARY_COLOR);
-	glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_ALPHA, GL_SRC_ALPHA);
-	glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_ALPHA, GL_SRC_ALPHA); 
-	
-	//setup texture unit 1 
-	glActiveTexture(GL_TEXTURE1);
-	glTexEnvi (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
-	//use the texture's color, no blending
-	glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_INTERPOLATE);
-	glTexEnvi(GL_TEXTURE_ENV, GL_SRC0_RGB, GL_PREVIOUS);
-	glTexEnvi(GL_TEXTURE_ENV, GL_SRC1_RGB, GL_TEXTURE);
-	//glTexEnvi(GL_TEXTURE_ENV, GL_SRC2_RGB, GL_PRIMARY_COLOR);
-	glTexEnvi(GL_TEXTURE_ENV, GL_SRC2_RGB, GL_CONSTANT);
-	glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR);
-	glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR);
-	//use the texture's alpha channel
-	glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_REPLACE);
-	glTexEnvi(GL_TEXTURE_ENV, GL_SRC0_ALPHA, GL_PRIMARY_COLOR);
-	glTexEnvi(GL_TEXTURE_ENV, GL_SRC1_ALPHA, GL_PRIMARY_COLOR);
-	glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_ALPHA, GL_SRC_ALPHA);
-	glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_ALPHA, GL_SRC_ALPHA); 
-	
-}
-
 GLfloat pts[700];
 GLfloat colors[700];
 
+void model_board_animate(int acceleration[], int frame){	
 
-int running_acceleration[2] = {0,0};
-int frame_saved = 0;
-void model_board_redraw(int * acceleration, int frame)
-{	
-frame_saved = frame;
+	static int running_acceleration[2] = {0,0};
+	
 	for (int i = 0; i <  360; i ++){
 		offset_thing[i] *= .9;
 	}
-	
 	
 	int relative_acceleration[2];
 
@@ -245,8 +170,8 @@ frame_saved = frame;
 	running_magnitude *= .95;
 	float temp_mag = sqrt( running_acceleration[0]  * running_acceleration[0]  + running_acceleration[1] * running_acceleration[1]);
 	if (temp_mag > running_magnitude){
-	running_magnitude = running_magnitude * .5 + .5 *temp_mag;
-	
+		running_magnitude = running_magnitude * .5 + .5 *temp_mag;
+		
 	}
 	
 	angle_target =  atan2(-running_acceleration[1],-running_acceleration[0] ) ;
@@ -255,293 +180,215 @@ frame_saved = frame;
 	
 	//printf( "%f %f\n", running_magnitude,angle_target);
 	
-	portal_spin += .50;
-	if (portal_spin > 360) portal_spin -= 360;
-	portal_spin2 += 6;
-	if (portal_spin2 > 360) portal_spin2 -= 360;
+	//spins the portal rim (uncontrolled)
+	portal_spin -= .50;
+	if (portal_spin < 0) portal_spin += 360;	
 	
-	
+	//slowly spins the portal background (uncontrolled)
 	portal_background_spin -= .01;
 	if (portal_background_spin < 360) portal_background_spin += 360;
 
-	portal_background_fader += .01;
-	if (portal_background_fader > .75)	portal_background_fader = -.75;
+	//slowly shimmers the portal background (uncontrolled)
+	if (event_horizon_vertex_list_shimmer > .99) event_horizon_vertex_list_shimmer_direction = false;
+	if (event_horizon_vertex_list_shimmer < .25) event_horizon_vertex_list_shimmer_direction = true;
+	if (event_horizon_vertex_list_shimmer_direction)	event_horizon_vertex_list_shimmer += .01;
+	else												event_horizon_vertex_list_shimmer -= .01;
 	
+
 	if CHECK_BIT(frame,1){
 		if (lastcolor != 1){
-			blank_fader = -100;
-			blank_processed = 1;
-			closed_fader = .99;
-			close_processed=2;
+			global_zoom = 0.0;
+			event_horizon_transparency_level = 1.0; //close portal for a moment on rapid color change
+			lastcolor = 1;
 		} 
 	}else{
 		if (lastcolor != 2){
-			blank_fader = -100;
-			blank_processed = 1;
-			closed_fader = .99;
-			close_processed=2;
+			global_zoom = 0.0;
+			event_horizon_transparency_level = 1.0;  //close portal for a moment on rapid color change
+			lastcolor = 2;
 		} 
 	}
 
-	//this controls making the portal zoom in (shutter)
+	//this controls global zoom (0 is blanked)
 	if CHECK_BIT(frame,3){
-		if (blank_processed !=1){
-			blank_fader = -100;
-			blank_processed = 1;
+		//turn on display
+		if (global_zoom == 0.0){
+			global_zoom = 0.01; //bump global_zoom from it's safe spot
 		}
 	}else{
-		if (blank_processed != 2){
-			blank_fader = -99.99;
-			blank_processed=2;
-		}
+		//turn off display
+		global_zoom = 0.0;
+		lastcolor = -1;
 	}
 
+	//let blank fader fall to normal size
+	if( global_zoom  > 0 && global_zoom < 1.0){
+		global_zoom += 0.05 ;
+		if ( global_zoom > 1.0 ) global_zoom = 1.0;
+	}
+	
 	//this controls making the portal fade into the backgroud video
 	if CHECK_BIT(frame,0){
-		
-		if (close_processed !=1){
-			closed_fader = 1;
-			close_processed = 1;
-		}
+			event_horizon_transparency_level = 1.0;
 	}else{
 		//wait for zoom to finish before fading to background
-		if (close_processed != 2 and blank_fader >= -.5){
-			closed_fader = .99;
-			close_processed=2;
+		if (event_horizon_transparency_level == 1.0 and global_zoom >= 0.5){ //wait for portal to be open a bit before unfading
+			event_horizon_transparency_level = .99; //bump the transparency and let it fall the rest of the way
 		}
 	}
 	
-	//this controls fadeout speed of the portal
-	if (closed_fader > 0 and closed_fader < 1 ){
-		closed_fader = closed_fader - 0.007;
-		if (closed_fader<0)	closed_fader = 0;
+	//let transparency fall to maximum
+	if (event_horizon_transparency_level > 0.0 and event_horizon_transparency_level < 1.0 ){
+		event_horizon_transparency_level = event_horizon_transparency_level - 0.01;
+		if (event_horizon_transparency_level < 0) event_horizon_transparency_level = 0;
 	}
 	
-	//iris speed
-	if( blank_fader < 0 ){
-		blank_fader = blank_fader - .18 * blank_fader ;
-		if ( blank_fader > 0 ) blank_fader = 0;
-	}
+
 	last_acceleration[0] = acceleration[0];
 	last_acceleration[1] = acceleration[1];
-	
 }
 
-void model_board_redraw(){	
+
+GLuint video_quad_vertex_list,event_horizon_vertex_list,event_horizon2_vertex_list,portal_vertex_list;
+
+void model_board_init(void)
+{
 	
+
 	for (int i = 0; i <  360; i ++){
-		offset_thing[i] = offset_thing[i] * .8 + .2 * ((cos( ((float)i)/360.0 * 2 *M_PI + angle_target  )  + M_PI)/ (2* M_PI)) * running_magnitude/10;
-		offset_thing[i] = MIN(offset_thing[i],3);
+		//offset_thing[i] = sin(((float)i)/360.0 * M_PI);
+		offset_thing[i] = 3;
 	}
 	
-	//depth checking
-	glEnable(GL_DEPTH_TEST);
+	orange_n = png_texture_load( "assets/orange_n.png", NULL, NULL);
+	//override default of clamp
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	
+	blue_n = png_texture_load( "assets/blue_n.png", NULL, NULL);
+	//override default of clamp
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	
+	orange_0 = png_texture_load( "assets/orange_0.png", NULL, NULL);
+	orange_1 = png_texture_load( "assets/orange_1.png", NULL, NULL);
+
+	blue_0 = png_texture_load( "assets/blue_0.png", NULL, NULL);
+	blue_1 = png_texture_load( "assets/blue_1.png", NULL, NULL);
+	
+	texture_orange = png_texture_load( "assets/orange_portal.png", NULL, NULL);
+	texture_blue   = png_texture_load( "assets/blue_portal.png",   NULL, NULL);
+	
+	if (orange_n == 0 || blue_n == 0 || texture_orange == 0 || texture_blue == 0 || orange_0 == 0 || orange_1 == 0 || blue_0 == 0 || blue_1 == 0)
+	{
+		throw std::runtime_error("Loading textures failed.");
+	}
+
+
+	video_quad_vertex_list = glGenLists( 1 );
+	glNewList( video_quad_vertex_list, GL_COMPILE );
+	#define VIDEO_DEPTH -2.5
+	glBegin( GL_QUADS );
+	glTexCoord2f( 0.0f, 0.0f );	glVertex3f( -1.33f, 1.0f,VIDEO_DEPTH);//top left
+	glTexCoord2f( 0.0f, 1.0f ); glVertex3f( -1.33f,-1.0f,VIDEO_DEPTH);//bottom left
+	glTexCoord2f( 1.0f, 1.0f );	glVertex3f(  1.33f,-1.0f,VIDEO_DEPTH);//bottom right
+	glTexCoord2f( 1.0f, 0.0f );	glVertex3f(  1.33f, 1.0f,VIDEO_DEPTH);//top right
+	glEnd();
+	glEndList();
+
+	event_horizon_vertex_list = glGenLists( 1 );
+	glNewList( event_horizon_vertex_list, GL_COMPILE );
+	#define event_horizon_vertex_list_DEPTH -2
+	glBegin( GL_QUADS );
+	glTexCoord2f( 0.0f, 0.0f );	glVertex3f( -1.2f, 1.2f,event_horizon_vertex_list_DEPTH);//top left
+	glTexCoord2f( 0.0f, 1.0f ); glVertex3f( -1.2f,-1.2f,event_horizon_vertex_list_DEPTH);//bottom left
+	glTexCoord2f( 1.0f, 1.0f );	glVertex3f(  1.2f,-1.2f,event_horizon_vertex_list_DEPTH);//bottom right
+	glTexCoord2f( 1.0f, 0.0f );	glVertex3f(  1.2f, 1.2f,event_horizon_vertex_list_DEPTH);//top right
+	glEnd( );
+	glEndList();
+	
+	event_horizon2_vertex_list = glGenLists( 1 );
+	glNewList( event_horizon2_vertex_list, GL_COMPILE );
+	#define event_horizon_vertex_list_DEPTH2 -1.9
+	glBegin( GL_QUADS );
+	glTexCoord2f( 0.0f, 0.0f );	glVertex3f( -1.2f, 1.2f,event_horizon_vertex_list_DEPTH2);//top left
+	glTexCoord2f( 0.0f, 1.0f ); glVertex3f( -1.2f,-1.2f,event_horizon_vertex_list_DEPTH2);//bottom left
+	glTexCoord2f( 1.0f, 1.0f );	glVertex3f(  1.2f,-1.2f,event_horizon_vertex_list_DEPTH2);//bottom right
+	glTexCoord2f( 1.0f, 0.0f );	glVertex3f(  1.2f, 1.2f,event_horizon_vertex_list_DEPTH2);//top right
+	glEnd( );
+	glEndList();
+	
+    portal_vertex_list = glGenLists( 1 );
+	glNewList( portal_vertex_list, GL_COMPILE );
+	#define PORTAL_DEPTH -1.6
+	glBegin( GL_QUADS );
+	glTexCoord2f( 0.0f, 0.0f );	    glVertex3f( -1.5f, 1.5f,PORTAL_DEPTH);//top left
+	glTexCoord2f( 0.0f, 1.0f );     glVertex3f( -1.5f,-1.5f,PORTAL_DEPTH);//bottom left
+	glTexCoord2f( 1.0f, 1.0f );     glVertex3f(  1.5f,-1.5f,PORTAL_DEPTH);//bottom right
+	glTexCoord2f( 1.0f, 0.0f );		glVertex3f(  1.5f, 1.5f,PORTAL_DEPTH);//top right
+	glEnd( );
+	glEndList();
+}
+
+
+
+void model_board_redraw(GLuint video_texture, int frame){	
+
+	//RESTART - CHECK IF I NEED TO SET ALL OF THESE EACH CYCLE!
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	
-	GLfloat vertices1[] = {-EX,-EY,-.5,EX,-EY,-.5,-EX,EY,-.5,EX,EY,-.5};
-	GLfloat texCoords1[] = {0,0,1,0,0,1,1,1};
-	
-	glClientActiveTexture(GL_TEXTURE1);
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(3, GL_FLOAT, 0, vertices1);
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	glTexCoordPointer(2, GL_FLOAT, 0, texCoords1);
-
-	glClientActiveTexture(GL_TEXTURE0);
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(3, GL_FLOAT, 0, vertices1);
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	glTexCoordPointer(2, GL_FLOAT, 0, texCoords1);
-	
+	glEnable(GL_DEPTH_TEST);
+	glEnable (GL_BLEND); 
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
+	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_TEXTURE0);	
-	glActiveTexture(GL_TEXTURE0);	
-	glEnable(GL_TEXTURE_2D);
-
-	CHECK_BIT(frame_saved,1) ? glBindTexture(GL_TEXTURE_2D, orange_0) : glBindTexture(GL_TEXTURE_2D, blue_0);
-	
-	
-	glEnable(GL_TEXTURE1);
-	glActiveTexture(GL_TEXTURE1);
-	glEnable(GL_TEXTURE_2D);
-	
-	CHECK_BIT(frame_saved,1) ? glBindTexture(GL_TEXTURE_2D, orange_1) : glBindTexture(GL_TEXTURE_2D, blue_1);
-	
-	GLfloat rgba2[4] = {1.0,1.0,1.0,(GLfloat)fabs(portal_background_fader)};
-	glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, rgba2);
-	
-	glColor4f(1.0 ,1.0 ,1.0 ,closed_fader);
-
-	
-	
-	glPushMatrix(); //save before rotation
-	
-	glRotatef(portal_background_spin, 0, 0, 1); //rotate background	
-	glDrawArrays(GL_TRIANGLE_STRIP,0, 4);
-	
-	glPopMatrix();//un-rotate background	
-	
-	
-	glDisable(GL_TEXTURE1);		
-	glBindTexture(GL_TEXTURE_2D, 0); 
-	
 	glActiveTexture(GL_TEXTURE0);
-	glDisable(GL_TEXTURE0);	
+	
+	glPushMatrix();
+	
+	//global scale
+    glScalef(global_zoom,global_zoom,1.0);   //maybe use a Z zoom?
+	
+	//VIDEO QUAD
+	glBindTexture (GL_TEXTURE_2D, video_texture); //video frame from gstreamer
+	glColor4f(1.0,1.0,1.0,1.0); //video is not transparent at all
+	glCallList(video_quad_vertex_list);
 	glBindTexture(GL_TEXTURE_2D, 0); 
 	
+	//EVENT HORIZON QUAD
+	glPushMatrix(); //save positions pre-rotation
 	
-	
-	glClientActiveTexture(GL_TEXTURE4);
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(3, GL_FLOAT, 0, vertices1);
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	glTexCoordPointer(2, GL_FLOAT, 0, texCoords1);
-	
-	glActiveTexture(GL_TEXTURE4);
-	
-	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-	
-	glEnable(GL_TEXTURE_2D);
+	CHECK_BIT(frame,1) ? glBindTexture(GL_TEXTURE_2D, orange_0) : glBindTexture(GL_TEXTURE_2D, blue_0); //base event horizon texture	
+	glColor4f(1.0,1.0,1.0,MIN(1.0,event_horizon_transparency_level)); //not transparent until forced open
+	glRotatef(portal_background_spin, 0, 0,1.0); //rotate background	
+	glCallList(event_horizon_vertex_list);
 
-	glColor4f(0,0,0,1);
-	// Portal
-	CHECK_BIT(frame_saved,2) ? glBindTexture(GL_TEXTURE_2D, texture_orange) : glBindTexture(GL_TEXTURE_2D, texture_blue);
-
-
-	GLfloat texCoords2[] = {0,0,1,0,0,1,1,1};
-	texCoords2[0] = texCoords2[1] = texCoords2[3] =  texCoords2[4] = (blank_fader);
-	texCoords2[2]= texCoords2[5] = texCoords2[6] = texCoords2[7] = (1.0 - blank_fader);
-	glTexCoordPointer(2, GL_FLOAT, 0, texCoords2);
+	CHECK_BIT(frame,1) ? glBindTexture(GL_TEXTURE_2D, orange_1) : glBindTexture(GL_TEXTURE_2D, blue_1); //base event horizon texture	
+	glColor4f(1.0,1.0,1.0, MIN( event_horizon_vertex_list_shimmer ,event_horizon_transparency_level)); //shimmer transparency until forced open
+	glRotatef(portal_background_spin, 0, 0,1.0); //rotate background more
+	glCallList(event_horizon2_vertex_list);
 	
-	GLfloat vertices2[] = {-EX,-EY,0,EX,-EY,0,-EX,EY,0,EX,EY,0};
-	glVertexPointer(3, GL_FLOAT, 0, vertices2);
+	glPopMatrix(); //un-rotate 
 	
-	glPushMatrix(); //save before rotation
+	//PORTAL RIM QUAD
+	glPushMatrix(); //save positions pre-rotation and scaling
 	
-	glScalef(2.08,1.17,1);
-	glRotatef(portal_spin, 0, 0, 1);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	
-	//glBindTexture(GL_TEXTURE_2D, red);
-	CHECK_BIT(frame_saved,1) ? glBindTexture(GL_TEXTURE_2D, orange_n) : glBindTexture(GL_TEXTURE_2D, blue_n);
+	CHECK_BIT(frame,2) ? glBindTexture(GL_TEXTURE_2D, texture_orange) : glBindTexture(GL_TEXTURE_2D, texture_blue); //portal texture
+	glColor4f(1.0,1.0,1.0,1.0); //portal texture is not transparent
+	glScalef(1.0*720/480,1.0,1.0);  //stretch portal to an oval
+	glRotatef(portal_spin, 0, 0, 1); //make it spin
+    glCallList(portal_vertex_list);
 	
 	
-	float backwards_scaler = ( 1 - blank_fader / -100.0);
-	draw_torus(1 , 8 * backwards_scaler, 30, 60);
 	
-	glPopMatrix();//un-rotate background	
+	//PARTICLES
+	CHECK_BIT(frame,1) ? glBindTexture(GL_TEXTURE_2D, orange_n) : glBindTexture(GL_TEXTURE_2D, blue_n);
+	donut_texture_scrolling += .05;
+	glColor4f(1.0,1.0,1.0,1.0); //donut is not transparent
 	
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glEnableClientState(GL_COLOR_ARRAY);
+	draw_torus(.5 , 1 , 30, 60);
+	
+	glPopMatrix(); //un-rotate and unscale the portal
 	
 	
-	int point_location = 0;
-	int color_location = 0;
-	#define PARTICLE_CHAIN_LENGTH 20
-	#define LEADING_PARTICLES 6
-	
-	int particle_angle_offset = 360/LEADING_PARTICLES;
-
-
-	float portal_spin2_current = portal_spin2;
-	float portal_spin_current = portal_spin;
-	
-	for (int cur_particle = 0; cur_particle < LEADING_PARTICLES; cur_particle++){
-
-		
-		float oscilator = cos(portal_spin2_current * M_PI/180.0) *1.5;
-		float xtweak =  1.17* sin(portal_spin_current * M_PI/180.0) *oscilator; 
-		float ytweak = 2.08*cos(portal_spin_current* M_PI/180.0) *oscilator;
-		
-		float x = backwards_scaler* 1.17* sin(portal_spin_current * M_PI/180.0) *7.8; 
-		float y = backwards_scaler*2.08*cos(portal_spin_current* M_PI/180.0) *7.8;
-		
-		glColor4f(1,1,1,1);
-		
-		for (int xx = 0; xx < PARTICLE_CHAIN_LENGTH; xx++){
-			//shuffle positions
-			
-			pts[point_location] = pts[point_location+3];
-			point_location++;
-			pts[point_location] = pts[point_location+3];
-			point_location++;
-			pts[point_location] = pts[point_location+3];
-			point_location++;
-			//shuffle colors
-			colors[color_location] = colors[color_location+4];
-			color_location++;
-			colors[color_location] = colors[color_location+4];
-			color_location++;
-			colors[color_location] = colors[color_location+4];
-			color_location++;
-			//decay alpha while moving
-			colors[color_location] = MAX(0,colors[color_location+4] - 0.01);
-			color_location++;
-		}
-		
-		//load coordinates
-		pts[point_location++] = y + ytweak;
-		pts[point_location++] = x + xtweak;
-		pts[point_location++] = sin((portal_spin2_current) * M_PI/180.0) *1.5;
-		//load color
-		
-			if CHECK_BIT(frame_saved,2){
-				//	colors[color_location++] = 247.0/255.0;
-	//	colors[color_location++] = 145.0/255.0;
-	//	colors[color_location++] = 38.0/255.0;
-		colors[color_location++] = 247.0/255.0;
-	colors[color_location++] = 208.0/255.0;
-	colors[color_location++] = 168.0/255.0;
-	
-	}else{
-		colors[color_location++] = 158/255.0;
-		colors[color_location++] = 218.0/255.0;
-		colors[color_location++] = 233.0/255.0;
-			//colors[color_location++] = 23.0/255.0;
-		//colors[color_location++] = 192.0/255.0;
-		//colors[color_location++] = 233.0/255.0;
-	}
-	
-		//colors[color_location++] = 1.0;
-		//colors[color_location++] = 1.0;
-		//colors[color_location++] = 1.0;
-		colors[color_location++] = 1.0; 
-		
-		portal_spin_current += particle_angle_offset;
-		portal_spin2_current -= 120;
-	}
-	
-
-	glColorPointer(4, GL_FLOAT, 0, colors);
-	glVertexPointer(3, GL_FLOAT, 0, pts);
-	glPointSize(20);
-	glEnable(GL_POINT_SMOOTH);
-	glDrawArrays(GL_POINTS,0,LEADING_PARTICLES * PARTICLE_CHAIN_LENGTH);
-	glDisableClientState(GL_COLOR_ARRAY);
-
-	texturescroller += .05;
-	//disable textures for shutter
-	glDisable(GL_TEXTURE4);	
-	glBindTexture(GL_TEXTURE_2D, 0); 
-
-	// shutter
-	if  CHECK_BIT(frame_saved,3){
-		glColor4f(0,0,0,1); //blocking black
-		lastcolor = -1;
-		blank_fader = -100;
-		blank_processed = 1;
-		closed_fader = 1;
-		close_processed = 1;
-	}else{
-		glColor4f(0,0,0,0); //transparent black
-	}
-
-	GLfloat vertices3[] = {-EX,-EY,10,EX,-EY,10,-EX,EY,10,EX,EY,10};
-	glVertexPointer(3, GL_FLOAT, 0, vertices3);
-
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-
-	lastcolor = CHECK_BIT(frame_saved,1) ? 1 : 2; //blue : orange
-
+	glPopMatrix();  //unscale the global
 }
