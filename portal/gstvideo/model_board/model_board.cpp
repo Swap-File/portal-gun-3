@@ -18,7 +18,7 @@
 int last_acceleration[2] = {0,0};
 static GLuint orange_1,blue_n,orange_n,orange_0,blue_0,blue_1,texture_orange,texture_blue;
 float portal_spin = 0;
-float portal_background_spin = 0;
+float event_horizon_spin = 0;
 
 float event_horizon_vertex_list_shimmer = 0;
 bool event_horizon_vertex_list_shimmer_direction = true;
@@ -30,27 +30,14 @@ float global_zoom = 0;
 int lastcolor = -1;
 GLfloat donut_texture_scrolling = 0.0;
 
-static void Normal(GLfloat *n, GLfloat nx, GLfloat ny, GLfloat nz){
-	n[0] = nx;
-	n[1] = ny;
-	n[2] = nz;
-}
 
-static void Vertex(GLfloat *v, GLfloat vx, GLfloat vy, GLfloat vz){
-	v[0] = vx;
-	v[1] = vy;
-	v[2] = vz;
-}
-
-static void Texcoord(GLfloat *v, GLfloat s, GLfloat t){
-	v[0] = s ;
-	v[1] = t- donut_texture_scrolling;
-}
 float offset_thing[360];
 float running_magnitude;
 float angle_target;
 float angle_target_delayed;
+
 /* Borrowed from glut, adapted */
+
 static void draw_torus(GLfloat r, GLfloat R, GLint nsides, GLint rings){
 	int i, j;
 	GLfloat r_using, R_using;
@@ -58,14 +45,6 @@ static void draw_torus(GLfloat r, GLfloat R, GLint nsides, GLint rings){
 	GLfloat cosTheta, sinTheta;
 	GLfloat cosTheta1, sinTheta1;
 	GLfloat ringDelta, sideDelta;
-	GLfloat varray[100][3], narray[100][3], tarray[100][2];
-	int vcount;
-
-	glVertexPointer(3, GL_FLOAT, 0, varray);
-	glNormalPointer(GL_FLOAT, 0, narray);
-	glTexCoordPointer(2, GL_FLOAT, 0, tarray);
-
-	glEnableClientState(GL_NORMAL_ARRAY);
 
 	ringDelta = 2.0 * M_PI / rings;  //x and y 
 	sideDelta = 2.0 * M_PI / nsides; //z
@@ -79,15 +58,14 @@ static void draw_torus(GLfloat r, GLfloat R, GLint nsides, GLint rings){
 		cosTheta1 = cos(theta1);
 		sinTheta1 = sin(theta1);
 
-		vcount = 0; /* glBegin(GL_QUAD_STRIP); */
+	    glBegin(GL_QUAD_STRIP); 
 
 		phi = 0.0;
 		
 		int index_deg = (360 - portal_spin + ( theta1 * 360  / (2*M_PI)));
 		
 		while (index_deg >= 360) index_deg -=360;
-		
-		
+				
 		r_using = r+ offset_thing[index_deg];
 		R_using = R- offset_thing[index_deg];
 		
@@ -97,11 +75,9 @@ static void draw_torus(GLfloat r, GLfloat R, GLint nsides, GLint rings){
 
 			phi += sideDelta;
 			
-			
 			cosPhi = cos(phi);
 			cosPhi = cos(phi);
-			
-			
+						
 			sinPhi = sin(phi);
 			dist = R_using + r_using * cosPhi;
 			
@@ -109,31 +85,23 @@ static void draw_torus(GLfloat r, GLfloat R, GLint nsides, GLint rings){
 			s1 = 20.0 * theta1 / (2.0 * M_PI);
 			t = 2.0 * phi / (2.0 * M_PI);  //this seems to control texture wrap around the nut
 
-			Normal(narray[vcount], cosTheta1 * cosPhi, -sinTheta1 * cosPhi, sinPhi);
-			Texcoord(tarray[vcount], s0, t);
-			Vertex(varray[vcount], cosTheta1 * dist, -sinTheta1 * dist, r_using * sinPhi);
-			vcount++;
+		    //glNormal3f(cosTheta1 * cosPhi, -sinTheta1 * cosPhi, sinPhi);
+			glTexCoord2f( s0, t - donut_texture_scrolling);
+			glVertex3f( cosTheta1 * dist, -sinTheta1 * dist, r_using * sinPhi);
 
-			Normal(narray[vcount], cosTheta * cosPhi, -sinTheta * cosPhi, sinPhi);
-			Texcoord(tarray[vcount], s1, t);
-			Vertex(varray[vcount], cosTheta * dist, -sinTheta * dist,  r_using * sinPhi);
-			vcount++;
+			//glNormal3f(cosTheta * cosPhi, -sinTheta * cosPhi, sinPhi);
+			glTexCoord2f(s1, t - donut_texture_scrolling);
+			glVertex3f(cosTheta * dist, -sinTheta * dist,  r_using * sinPhi);
 		}
 
-		/*glEnd();*/
-		assert(vcount <= 100);
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, vcount);
+		glEnd();
 
 		theta = theta1;
 		cosTheta = cosTheta1;
 		sinTheta = sinTheta1;
 	}
-	glDisableClientState(GL_NORMAL_ARRAY);
-
 }
 
-GLfloat pts[700];
-GLfloat colors[700];
 
 void model_board_animate(int acceleration[], int frame){	
 
@@ -185,8 +153,8 @@ void model_board_animate(int acceleration[], int frame){
 	if (portal_spin < 0) portal_spin += 360;	
 	
 	//slowly spins the portal background (uncontrolled)
-	portal_background_spin -= .01;
-	if (portal_background_spin < 360) portal_background_spin += 360;
+	event_horizon_spin -= .01;
+	if (event_horizon_spin < 360) event_horizon_spin += 360;
 
 	//slowly shimmers the portal background (uncontrolled)
 	if (event_horizon_vertex_list_shimmer > .99) event_horizon_vertex_list_shimmer_direction = false;
@@ -287,45 +255,50 @@ void model_board_init(void)
 
 	video_quad_vertex_list = glGenLists( 1 );
 	glNewList( video_quad_vertex_list, GL_COMPILE );
-	#define VIDEO_DEPTH -2.5
+	#define VIDEO_DEPTH -0.003
+	#define VIDEO_SCALE 11
 	glBegin( GL_QUADS );
-	glTexCoord2f( 0.0f, 0.0f );	glVertex3f( -1.33f, 1.0f,VIDEO_DEPTH);//top left
-	glTexCoord2f( 0.0f, 1.0f ); glVertex3f( -1.33f,-1.0f,VIDEO_DEPTH);//bottom left
-	glTexCoord2f( 1.0f, 1.0f );	glVertex3f(  1.33f,-1.0f,VIDEO_DEPTH);//bottom right
-	glTexCoord2f( 1.0f, 0.0f );	glVertex3f(  1.33f, 1.0f,VIDEO_DEPTH);//top right
+	glTexCoord2f( 0.0f, 0.0f );	glVertex3f( -VIDEO_SCALE * 4/3, VIDEO_SCALE,VIDEO_DEPTH);//top left
+	glTexCoord2f( 0.0f, 1.0f ); glVertex3f( -VIDEO_SCALE * 4/3,-VIDEO_SCALE,VIDEO_DEPTH);//bottom left
+	glTexCoord2f( 1.0f, 1.0f );	glVertex3f(  VIDEO_SCALE * 4/3,-VIDEO_SCALE,VIDEO_DEPTH);//bottom right
+	glTexCoord2f( 1.0f, 0.0f );	glVertex3f(  VIDEO_SCALE * 4/3, VIDEO_SCALE,VIDEO_DEPTH);//top right
 	glEnd();
 	glEndList();
 
 	event_horizon_vertex_list = glGenLists( 1 );
 	glNewList( event_horizon_vertex_list, GL_COMPILE );
-	#define event_horizon_vertex_list_DEPTH -2
+	#define EVENT_HORIZON_DEPTH -0.002
+	#define EVENT_HORIZON_SCALE 11
 	glBegin( GL_QUADS );
-	glTexCoord2f( 0.0f, 0.0f );	glVertex3f( -1.2f, 1.2f,event_horizon_vertex_list_DEPTH);//top left
-	glTexCoord2f( 0.0f, 1.0f ); glVertex3f( -1.2f,-1.2f,event_horizon_vertex_list_DEPTH);//bottom left
-	glTexCoord2f( 1.0f, 1.0f );	glVertex3f(  1.2f,-1.2f,event_horizon_vertex_list_DEPTH);//bottom right
-	glTexCoord2f( 1.0f, 0.0f );	glVertex3f(  1.2f, 1.2f,event_horizon_vertex_list_DEPTH);//top right
+	glTexCoord2f( 0.0f, 0.0f );	glVertex3f( -EVENT_HORIZON_SCALE, EVENT_HORIZON_SCALE,EVENT_HORIZON_DEPTH);//top left
+	glTexCoord2f( 0.0f, 1.0f ); glVertex3f( -EVENT_HORIZON_SCALE,-EVENT_HORIZON_SCALE,EVENT_HORIZON_DEPTH);//bottom left
+	glTexCoord2f( 1.0f, 1.0f );	glVertex3f(  EVENT_HORIZON_SCALE,-EVENT_HORIZON_SCALE,EVENT_HORIZON_DEPTH);//bottom right
+	glTexCoord2f( 1.0f, 0.0f );	glVertex3f(  EVENT_HORIZON_SCALE, EVENT_HORIZON_SCALE,EVENT_HORIZON_DEPTH);//top right
 	glEnd( );
 	glEndList();
 	
 	event_horizon2_vertex_list = glGenLists( 1 );
 	glNewList( event_horizon2_vertex_list, GL_COMPILE );
-	#define event_horizon_vertex_list_DEPTH2 -1.9
+	#define EVENT_HORIZON2_DEPTH -0.001
+	#define EVENT_HORIZON2_SCALE 11
 	glBegin( GL_QUADS );
-	glTexCoord2f( 0.0f, 0.0f );	glVertex3f( -1.2f, 1.2f,event_horizon_vertex_list_DEPTH2);//top left
-	glTexCoord2f( 0.0f, 1.0f ); glVertex3f( -1.2f,-1.2f,event_horizon_vertex_list_DEPTH2);//bottom left
-	glTexCoord2f( 1.0f, 1.0f );	glVertex3f(  1.2f,-1.2f,event_horizon_vertex_list_DEPTH2);//bottom right
-	glTexCoord2f( 1.0f, 0.0f );	glVertex3f(  1.2f, 1.2f,event_horizon_vertex_list_DEPTH2);//top right
+	glTexCoord2f( 0.0f, 0.0f );	glVertex3f( -EVENT_HORIZON2_SCALE, EVENT_HORIZON2_SCALE,EVENT_HORIZON2_DEPTH);//top left
+	glTexCoord2f( 0.0f, 1.0f ); glVertex3f( -EVENT_HORIZON2_SCALE,-EVENT_HORIZON2_SCALE,EVENT_HORIZON2_DEPTH);//bottom left
+	glTexCoord2f( 1.0f, 1.0f );	glVertex3f(  EVENT_HORIZON2_SCALE,-EVENT_HORIZON2_SCALE,EVENT_HORIZON2_DEPTH);//bottom right
+	glTexCoord2f( 1.0f, 0.0f );	glVertex3f(  EVENT_HORIZON2_SCALE, EVENT_HORIZON2_SCALE,EVENT_HORIZON2_DEPTH);//top right
 	glEnd( );
 	glEndList();
 	
     portal_vertex_list = glGenLists( 1 );
 	glNewList( portal_vertex_list, GL_COMPILE );
-	#define PORTAL_DEPTH -1.6
+	//#define PORTAL_DEPTH -1.6
+	#define PORTAL_DEPTH 0
+	#define PORTAL_SCALE 28.5
 	glBegin( GL_QUADS );
-	glTexCoord2f( 0.0f, 0.0f );	    glVertex3f( -1.5f, 1.5f,PORTAL_DEPTH);//top left
-	glTexCoord2f( 0.0f, 1.0f );     glVertex3f( -1.5f,-1.5f,PORTAL_DEPTH);//bottom left
-	glTexCoord2f( 1.0f, 1.0f );     glVertex3f(  1.5f,-1.5f,PORTAL_DEPTH);//bottom right
-	glTexCoord2f( 1.0f, 0.0f );		glVertex3f(  1.5f, 1.5f,PORTAL_DEPTH);//top right
+	glTexCoord2f( 0.0f, 0.0f );	glVertex3f( -PORTAL_SCALE, PORTAL_SCALE,PORTAL_DEPTH);//top left
+	glTexCoord2f( 0.0f, 1.0f ); glVertex3f( -PORTAL_SCALE,-PORTAL_SCALE,PORTAL_DEPTH);//bottom left
+	glTexCoord2f( 1.0f, 1.0f ); glVertex3f(  PORTAL_SCALE,-PORTAL_SCALE,PORTAL_DEPTH);//bottom right
+	glTexCoord2f( 1.0f, 0.0f );	glVertex3f(  PORTAL_SCALE, PORTAL_SCALE,PORTAL_DEPTH);//top right
 	glEnd( );
 	glEndList();
 }
@@ -337,11 +310,15 @@ void model_board_redraw(GLuint video_texture, int frame){
 	//RESTART - CHECK IF I NEED TO SET ALL OF THESE EACH CYCLE!
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
-	glEnable (GL_BLEND); 
+	glEnable(GL_BLEND); 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
 	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_TEXTURE0);	
 	glActiveTexture(GL_TEXTURE0);
+	
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glTranslatef(0, 0, -30);
 	
 	glPushMatrix();
 	
@@ -357,18 +334,20 @@ void model_board_redraw(GLuint video_texture, int frame){
 	//EVENT HORIZON QUAD
 	glPushMatrix(); //save positions pre-rotation
 	
+	glScalef(1.0*720/480,1.0,1.0);  //stretch portal to an oval
+	
 	CHECK_BIT(frame,1) ? glBindTexture(GL_TEXTURE_2D, orange_0) : glBindTexture(GL_TEXTURE_2D, blue_0); //base event horizon texture	
 	glColor4f(1.0,1.0,1.0,MIN(1.0,event_horizon_transparency_level)); //not transparent until forced open
-	glRotatef(portal_background_spin, 0, 0,1.0); //rotate background	
+	glRotatef(event_horizon_spin, 0, 0,1.0); //rotate background	
 	glCallList(event_horizon_vertex_list);
 
 	CHECK_BIT(frame,1) ? glBindTexture(GL_TEXTURE_2D, orange_1) : glBindTexture(GL_TEXTURE_2D, blue_1); //base event horizon texture	
 	glColor4f(1.0,1.0,1.0, MIN( event_horizon_vertex_list_shimmer ,event_horizon_transparency_level)); //shimmer transparency until forced open
-	glRotatef(portal_background_spin, 0, 0,1.0); //rotate background more
+	glRotatef(event_horizon_spin, 0, 0,1.0); //rotate background more
 	glCallList(event_horizon2_vertex_list);
 	
-	glPopMatrix(); //un-rotate 
-	
+	glPopMatrix(); //un-rotate and unstretch
+
 	//PORTAL RIM QUAD
 	glPushMatrix(); //save positions pre-rotation and scaling
 	
@@ -378,17 +357,15 @@ void model_board_redraw(GLuint video_texture, int frame){
 	glRotatef(portal_spin, 0, 0, 1); //make it spin
     glCallList(portal_vertex_list);
 	
-	
-	
-	//PARTICLES
+	//TEXTURED TORUS
 	CHECK_BIT(frame,1) ? glBindTexture(GL_TEXTURE_2D, orange_n) : glBindTexture(GL_TEXTURE_2D, blue_n);
-	donut_texture_scrolling += .05;
-	glColor4f(1.0,1.0,1.0,1.0); //donut is not transparent
-	
-	draw_torus(.5 , 1 , 30, 60);
+	draw_torus(1.4 , 9.8 , 30, 60);
+	donut_texture_scrolling+=.05;
 	
 	glPopMatrix(); //un-rotate and unscale the portal
-	
-	
 	glPopMatrix();  //unscale the global
+	
+	
+	
+
 }

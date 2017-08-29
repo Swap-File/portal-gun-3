@@ -325,7 +325,7 @@ void start_pipeline(int input){
 static gboolean idle_loop (gpointer data) {
 	
 	
-	static int video_mode_requested = 0;
+	static int video_mode_requested = 7;
 	static int video_mode_current = -1;
 	
 	static int portal_mode_requested = 1;
