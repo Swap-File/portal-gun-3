@@ -1,4 +1,5 @@
 #define GST_USE_UNSTABLE_API
+#define GL_GLEXT_PROTOTYPES
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,17 +9,37 @@
 #include <unistd.h>
 #include <stdexcept>
 
-
 #include <gst/gst.h>
 #include <gst/gl/gl.h>
-
+#include <GL/glx.h>
+#include <GL/glxext.h>
 
 #include "png_texture.h"
 
 #define CHECK_BIT(var,pos) ((var) & (1<<(pos)))
 
 int last_acceleration[2] = {0,0};
-static GLuint orange_1,blue_n,orange_n,orange_0,blue_0,blue_1,texture_orange,texture_blue,circle64;
+
+//textures
+GLuint orange_1,blue_n,orange_n,orange_0,blue_0,blue_1,texture_orange,texture_blue,circle64;
+
+//vertex lists
+GLuint video_quad_vertex_list,event_horizon_vertex_list,event_horizon2_vertex_list,portal_vertex_list,shutter_vertex_list;
+
+//texture scrolling
+GLfloat donut_texture_scrolling = 0.0;
+
+	//trail of points
+	#define TRAIL_QTY    2
+	#define TRAIL_LENGTH 10
+	#define TRAIL_OD     9
+	#define TRAIL_ID     1
+	static float trail_offset = 0.0;
+	static GLfloat pts[TRAIL_QTY * 3 * TRAIL_LENGTH];
+    static GLfloat colors[TRAIL_QTY * 4 * TRAIL_LENGTH];
+	
+	
+
 float portal_spin = 0;
 float event_horizon_spin = 0;
 
@@ -30,16 +51,14 @@ float event_horizon_transparency_level = 0;
 float global_zoom = 0;
 
 int lastcolor = -1;
-GLfloat donut_texture_scrolling = 0.0;
 
 
-float offset_thing[360];
+float torus_offset[360];
 float running_magnitude;
 float angle_target;
 float angle_target_delayed;
 
 /* Borrowed from glut, adapted */
-
 static void draw_torus(GLfloat r, GLfloat R, GLint nsides, GLint rings){
 	int i, j;
 	GLfloat r_using, R_using;
@@ -68,8 +87,8 @@ static void draw_torus(GLfloat r, GLfloat R, GLint nsides, GLint rings){
 		
 		while (index_deg >= 360) index_deg -=360;
 		
-		r_using = r+ offset_thing[index_deg];
-		R_using = R- offset_thing[index_deg];
+		r_using = r+ torus_offset[index_deg];
+		R_using = R- torus_offset[index_deg];
 		
 		for (j = nsides; j >= 0; j--) {
 			GLfloat s0, s1, t;
@@ -78,9 +97,8 @@ static void draw_torus(GLfloat r, GLfloat R, GLint nsides, GLint rings){
 			phi += sideDelta;
 			
 			cosPhi = cos(phi);
-			cosPhi = cos(phi);
-			
 			sinPhi = sin(phi);
+			
 			dist = R_using + r_using * cosPhi;
 			
 			s0 = 20.0 * theta / (2.0 * M_PI);
@@ -109,8 +127,9 @@ void model_board_animate(int acceleration[], int frame){
 
 	static int running_acceleration[2] = {0,0};
 	
+	//decay the torus offset
 	for (int i = 0; i <  360; i ++){
-		offset_thing[i] *= .9;
+		torus_offset[i] *= .9;
 	}
 	
 	int relative_acceleration[2];
@@ -219,16 +238,14 @@ void model_board_animate(int acceleration[], int frame){
 }
 
 
-GLuint video_quad_vertex_list,event_horizon_vertex_list,event_horizon2_vertex_list,portal_vertex_list;
 
 void model_board_init(void)
 {
-	
+	//set all points to be white, let the texture through
+	for (int i = 0; i < (sizeof(colors)/sizeof(colors[0])); i++) colors[i] = 1.0;
 
-	for (int i = 0; i <  360; i ++){
-		//offset_thing[i] = sin(((float)i)/360.0 * M_PI);
-		offset_thing[i] = 3;
-	}
+	//initial fill to snap back
+	for (int i = 0; i <  360; i ++)	torus_offset[i] = 3;
 	
 	orange_n = png_texture_load( "assets/orange_n.png", NULL, NULL);
 	//override default of clamp
@@ -260,11 +277,28 @@ void model_board_init(void)
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND); 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
+	
+	//enable texturing
 	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_TEXTURE0);	
-	glTexEnvi(GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE);
 	glActiveTexture(GL_TEXTURE0);
 	
+	//setup point sprites
+	glTexEnvi(GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE);
+	
+	//check max and min point sizes
+	GLfloat sizes[2];
+	//glGetFloatv(GL_ALIASED_POINT_SIZE_RANGE, sizes);
+	//glPointParameterfARB( GL_POINT_SIZE_MAX_ARB, sizes[1]);
+	//glPointParameterfARB( GL_POINT_SIZE_MIN_ARB, sizes[0]);
+	// printf("Min point size: %f  Max Point size:  %f \n ",sizes[0] ,sizes[1] );
+
+	//setup automatic point size changing based on Z distance
+	//float quadratic[] = { 1.0f, 0.0f, 0.01f };
+	//glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, quadratic );
+	
+
+
 	video_quad_vertex_list = glGenLists( 1 );
 	glNewList( video_quad_vertex_list, GL_COMPILE );
 	#define VIDEO_DEPTH -0.003
@@ -303,7 +337,6 @@ void model_board_init(void)
 	
 	portal_vertex_list = glGenLists( 1 );
 	glNewList( portal_vertex_list, GL_COMPILE );
-	//#define PORTAL_DEPTH -1.6
 	#define PORTAL_DEPTH 0
 	#define PORTAL_SCALE 28.5
 	glBegin( GL_QUADS );
@@ -313,10 +346,20 @@ void model_board_init(void)
 	glTexCoord2f( 1.0f, 0.0f );	glVertex3f(  PORTAL_SCALE, PORTAL_SCALE,PORTAL_DEPTH);//top right
 	glEnd( );
 	glEndList();
+	
+	shutter_vertex_list = glGenLists( 1 );
+	glNewList( shutter_vertex_list, GL_COMPILE );
+	#define SHUTTER_DEPTH 28
+	#define SHUTTER_SCALE 2.0
+	glBegin( GL_QUADS );
+	glVertex3f( -SHUTTER_SCALE, SHUTTER_SCALE,SHUTTER_DEPTH);//top left
+	glVertex3f( -SHUTTER_SCALE,-SHUTTER_SCALE,SHUTTER_DEPTH);//bottom left
+	glVertex3f(  SHUTTER_SCALE,-SHUTTER_SCALE,SHUTTER_DEPTH);//bottom right
+	glVertex3f(  SHUTTER_SCALE, SHUTTER_SCALE,SHUTTER_DEPTH);//top right
+	glEnd( );
+	glEndList();
 }
 
-
-static float zshuffle = -3;
 void model_board_redraw(GLuint video_texture, int frame){	
 
 	//RESTART - CHECK IF I NEED TO SET ALL OF THESE EACH CYCLE!
@@ -371,20 +414,75 @@ void model_board_redraw(GLuint video_texture, int frame){
 	//POINT SPRITES
 	glBindTexture(GL_TEXTURE_2D, circle64);
 	
+	glDisable(GL_DEPTH_TEST);
 
 	glPointSize(20.0f);
 	glEnable(GL_POINT_SPRITE_ARB);
+	
 
-	glBegin(GL_POINTS);
-	glVertex3f(zshuffle,zshuffle,zshuffle);
-	glEnd();
+	
+
+	glRotatef(-portal_spin*2, 0, 0, 1); //make it spin
+
 	
 	
+
+	
+	//put the new pixel at the front of the point array so it's first in draw order
+	for (int trail_head = 0; trail_head < TRAIL_QTY; trail_head++){
+
+		int base_vertex_index = trail_head * 3 * TRAIL_LENGTH;	
+		int base_color_index = trail_head * 4 * TRAIL_LENGTH;	
+		
+		//first decay old trail points
+		for (int i = TRAIL_LENGTH-1; i > 0; i--){
+			int trail_vertex_base = 3*i + base_vertex_index;
+			int trail_color_base = 4*i + base_color_index;
+			pts[trail_vertex_base+0] = pts[trail_vertex_base-3];
+			pts[trail_vertex_base+1] = pts[trail_vertex_base-2];
+			pts[trail_vertex_base+2] = pts[trail_vertex_base-1];
+			
+			//only decay the alpha
+			colors[trail_color_base+3] = colors[trail_color_base-1] * 0.9;
+			
+		}
+		
+		//make a new trail head point
+		float current_position = (float)trail_head * (( 2 * M_PI )/((float)TRAIL_QTY)) + trail_offset; //position in radian
+		float ypoint = sin(current_position) * TRAIL_OD;
+		float xpoint = cos(current_position) * TRAIL_OD;		
+	
+		pts[base_vertex_index+0] = xpoint;
+		pts[base_vertex_index+1] = ypoint;
+		pts[base_vertex_index+2] = 1;
+		
+		//set alpha to max
+		colors[base_color_index+3] = 1.0;
+		
+	}
+	trail_offset -= .05;
+	
+	
+	//draw the items
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_COLOR_ARRAY);
+	glColorPointer(4, GL_FLOAT, 0, colors);
+	glVertexPointer(3, GL_FLOAT, 0, pts);
+	glDrawArrays(GL_POINTS,0,TRAIL_LENGTH * TRAIL_QTY);
+	glDisableClientState(GL_VERTEX_ARRAY);
+	glDisableClientState(GL_COLOR_ARRAY);
 	glDisable( GL_POINT_SPRITE_ARB );
+
+		
 	glPopMatrix(); //un-rotate and unscale the portal
 	glPopMatrix(); //unscale the global
 	
+
+	//MAIN SHUTTER (for safety, ensures the lasers don't turn on) 
+	glBindTexture(GL_TEXTURE_2D, 0); //no texture
+	GLfloat shutter = CHECK_BIT(frame,3) ? 0.0 : 1.0;
+	glColor4f(0.0,0.0,0.0,shutter); 
+	glCallList(shutter_vertex_list);
+
 	
-	zshuffle += .05;
-	if (zshuffle > 3) (zshuffle = -3);
 }

@@ -318,19 +318,12 @@ void start_pipeline(int input){
 	printf("Pipeline %d changed to in %f seconds!\n",input,current_time() - start_time);
 }
 
-
-
-static int video_mode_requested = 8;
+static int video_mode_requested = 0;
 static int video_mode_current = -1;
-static int portal_mode_requested = 1;
+static int portal_mode_requested = 9;
 	
 static gboolean idle_loop (gpointer data) {
 	
-	
-	
-	
-	
-
 	static int accleration[3];
 	
 	//opengl rendering update
@@ -338,7 +331,6 @@ static gboolean idle_loop (gpointer data) {
 	static double tRate0 = -1.0;
 	double t = current_time();
 
-	
 	int count = 1;
 	char buffer[100];
 	//stdin is line buffered so we can cheat a little bit
