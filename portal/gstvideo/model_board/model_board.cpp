@@ -123,7 +123,7 @@ void draw_torus_vbo(){
 #define TRAIL_QTY    6
 #define TRAIL_LENGTH 20
 #define TRAIL_OD     9.2
-#define TRAIL_ID     3
+#define TRAIL_ID     2
 static float cardinal_offset = 0.0;
 static float helical_offset = 0.0;
 static GLfloat point_sprite_vertexes[TRAIL_QTY * 3 * TRAIL_LENGTH];
@@ -146,7 +146,9 @@ void draw_point_sprite_vertexes(void){
 			point_sprite_vertexes[trail_vertex_base+2] = point_sprite_vertexes[trail_vertex_base-1];
 			
 			//only decay the alpha
-			point_sprite_colors[trail_color_base+3] = point_sprite_colors[trail_color_base-1] * 0.98;
+			point_sprite_colors[trail_color_base+3] = point_sprite_colors[trail_color_base-1] * 0.9;
+			
+			if (point_sprite_vertexes[trail_vertex_base+2] <= 0.01) point_sprite_colors[trail_color_base+3] = 0;
 		}
 		
 		//find how far around the circle this head is
@@ -154,34 +156,26 @@ void draw_point_sprite_vertexes(void){
 		
 		//offset the position to get movement in a circle (controls cardinal speed)
 		float cardinal_position = position + cardinal_offset; 
-		
-		///calculate the x y position of the head (trace a circle)
-		float ypoint = sin(cardinal_position) * TRAIL_OD; 
-		float xpoint = cos(cardinal_position) * TRAIL_OD; 
-		
+			
 		//offset the position to get helical movement (controls helical speed)
 		float helical_position = position + helical_offset; //position in radian
 		
 		//calculate helix coords
 		float z_helix = cos(helical_position) * TRAIL_ID ; 
 		float radius_helix = sin(helical_position) * TRAIL_ID; 
-		
-		//convert the radius of the helix to x y coords
-		float y_helix = sin(z_helix); 
-		float x_helix = cos(z_helix); 
-		
-		//if (xpoint > 0 && xpoint > 0){
-		//	xpoint += x_helix;
-		//	ypoint += y_helix;
-		//}else if 
-	
+				
+		///calculate the x y position of the head (trace a circle)
+		float ypoint = sin(cardinal_position) * (TRAIL_OD + radius_helix); 
+		float xpoint = cos(cardinal_position) * (TRAIL_OD + radius_helix); 
 		
 		point_sprite_vertexes[base_vertex_index+0] = xpoint;
 		point_sprite_vertexes[base_vertex_index+1] = ypoint;
-		point_sprite_vertexes[base_vertex_index+2] = 1.0;
+		point_sprite_vertexes[base_vertex_index+2] = z_helix;
 		
 		//set alpha to max
 		point_sprite_colors[base_color_index+3] = 1.0;
+		
+		if (point_sprite_vertexes[base_vertex_index+2] <= 0.01) point_sprite_colors[base_color_index+3] = 0;
 	}
 	cardinal_offset -= .03;
 	helical_offset += .1;
@@ -471,18 +465,9 @@ void model_board_redraw(GLuint video_texture, int frame){
 	glRotatef(portal_spin, 0, 0, 1); //make it spin
 	glCallList(portal_vertex_list);
 	
-	//TEXTURED TORUS 
-	CHECK_BIT(frame,1) ? glBindTexture(GL_TEXTURE_2D, orange_n) : glBindTexture(GL_TEXTURE_2D, blue_n);
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	//draw_torus_vbo();
-	donut_texture_scrolling+=.05;
-	//glEnableClientState(GL_VERTEX_ARRAY);  Leave on for Points!
-	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 
 	//POINT SPRITES
-	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
-	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_DEPTH_TEST);  //manual depth check
 	glBindTexture(GL_TEXTURE_2D, circle64);
 	glPointSize(20.0f);
 	glEnable(GL_POINT_SPRITE_ARB);
@@ -490,19 +475,30 @@ void model_board_redraw(GLuint video_texture, int frame){
 	glColor4f(1.0,1.0,1.0,1.0);
 	
 	glRotatef(-portal_spin*3, 0, 0, 1); //make it spin
-	//glEnableClientState(GL_VERTEX_ARRAY);  alread on!
+	glEnableClientState(GL_VERTEX_ARRAY);  
 	glEnableClientState(GL_COLOR_ARRAY);
 	draw_point_sprite_vertexes();
-	glDisableClientState(GL_VERTEX_ARRAY);
+	//glDisableClientState(GL_VERTEX_ARRAY); //Leave on for Points!
 	glDisableClientState(GL_COLOR_ARRAY);
 	glDisable( GL_POINT_SPRITE_ARB );
-
+glEnable(GL_DEPTH_TEST);
+	
+	//TEXTURED TORUS 
+	CHECK_BIT(frame,1) ? glBindTexture(GL_TEXTURE_2D, orange_n) : glBindTexture(GL_TEXTURE_2D, blue_n);
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	draw_torus_vbo();
+	donut_texture_scrolling+=.05;
+	//glEnableClientState(GL_VERTEX_ARRAY);  
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+	
+	
 	glPopMatrix(); //un-rotate and unscale the portal
 	glPopMatrix(); //unscale the global
 	
-glEnable(GL_DEPTH_TEST);
 
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
+
+	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
 	//MAIN SHUTTER (for safety, ensures the lasers don't turn on) 
 	glBindTexture(GL_TEXTURE_2D, 0); //no texture
 	GLfloat shutter = CHECK_BIT(frame,3) ? 0.0 : 1.0;
