@@ -121,35 +121,29 @@ void draw_torus_vbo(){
 
 //trail of points
 #define TRAIL_QTY    6
-#define TRAIL_LENGTH 20
+#define TRAIL_LENGTH 10
 #define TRAIL_OD     9.2
 #define TRAIL_ID     2
 static float cardinal_offset = 0.0;
 static float helical_offset = 0.0;
-static GLfloat point_sprite_vertexes[TRAIL_QTY * 3 * TRAIL_LENGTH];
-static GLfloat point_sprite_colors[TRAIL_QTY * 4 * TRAIL_LENGTH];
+static GLfloat point_vertexes[TRAIL_QTY * 3 * TRAIL_LENGTH];
+static GLfloat point_colors[TRAIL_QTY * 4 * TRAIL_LENGTH];
+static int head_offset = 0;
 
 void draw_point_sprite_vertexes(void){
 	
-	//put the new pixel at the front of the point array so it's first in draw order
+	//first decay ALL trail points, alpha is stored in 4th positions of color array
+	for (int i = 3; i < TRAIL_QTY * 4 * TRAIL_LENGTH; i += 4) point_colors[i] *= 0.9;
+	
+	//overwrite the oldest point in each tail with the new head, render order doesnt matter
+	head_offset = (head_offset + 1) % TRAIL_LENGTH; 
+	
+	//do each head once
 	for (int trail_head = 0; trail_head < TRAIL_QTY; trail_head++){
-
-		int base_vertex_index = trail_head * 3 * TRAIL_LENGTH;	
-		int base_color_index = trail_head * 4 * TRAIL_LENGTH;	
 		
-		//first decay old trail points
-		for (int i = TRAIL_LENGTH-1; i > 0; i--){
-			int trail_vertex_base = 3*i + base_vertex_index;
-			int trail_color_base = 4*i + base_color_index;
-			point_sprite_vertexes[trail_vertex_base+0] = point_sprite_vertexes[trail_vertex_base-3];
-			point_sprite_vertexes[trail_vertex_base+1] = point_sprite_vertexes[trail_vertex_base-2];
-			point_sprite_vertexes[trail_vertex_base+2] = point_sprite_vertexes[trail_vertex_base-1];
-			
-			//only decay the alpha
-			point_sprite_colors[trail_color_base+3] = point_sprite_colors[trail_color_base-1] * 0.9;
-			
-			if (point_sprite_vertexes[trail_vertex_base+2] <= 0.01) point_sprite_colors[trail_color_base+3] = 0;
-		}
+		//find the start of each trail, add the offset to get to the new head
+		int vertex_index = trail_head * 3 * TRAIL_LENGTH + head_offset * 3;
+		int color_index  = trail_head * 4 * TRAIL_LENGTH + head_offset * 4;	
 		
 		//find how far around the circle this head is
 		float position = (float)trail_head * (( 2 * M_PI )/((float)TRAIL_QTY));
@@ -168,21 +162,20 @@ void draw_point_sprite_vertexes(void){
 		float ypoint = sin(cardinal_position) * (TRAIL_OD + radius_helix); 
 		float xpoint = cos(cardinal_position) * (TRAIL_OD + radius_helix); 
 		
-		point_sprite_vertexes[base_vertex_index+0] = xpoint;
-		point_sprite_vertexes[base_vertex_index+1] = ypoint;
-		point_sprite_vertexes[base_vertex_index+2] = z_helix;
+		point_vertexes[vertex_index+0] = xpoint;
+		point_vertexes[vertex_index+1] = ypoint;
+		point_vertexes[vertex_index+2] = z_helix;
 		
-		//set alpha to max
-		point_sprite_colors[base_color_index+3] = 1.0;
+		//clip at Z of 0
+		point_colors[color_index+3] = (z_helix > 0) ? 1.0 : 0.0;
 		
-		if (point_sprite_vertexes[base_vertex_index+2] <= 0.01) point_sprite_colors[base_color_index+3] = 0;
 	}
 	cardinal_offset -= .03;
 	helical_offset += .1;
 	//draw the items
 	
-	glColorPointer(4, GL_FLOAT, 0, point_sprite_colors);
-	glVertexPointer(3, GL_FLOAT, 0, point_sprite_vertexes);
+	glColorPointer(4, GL_FLOAT, 0, point_colors);
+	glVertexPointer(3, GL_FLOAT, 0, point_vertexes);
 	glDrawArrays(GL_POINTS,0,TRAIL_LENGTH * TRAIL_QTY);	
 }
 
@@ -303,7 +296,7 @@ void model_board_animate(int acceleration[], int frame){
 void model_board_init(void)
 {
 	//set all points to be white, let the texture through
-	for (uint16_t i = 0; i < (sizeof(point_sprite_colors)/sizeof(point_sprite_colors[0])); i++) point_sprite_colors[i] = 1.0;
+	for (uint16_t i = 0; i < (sizeof(point_colors)/sizeof(point_colors[0])); i++) point_colors[i] = 1.0;
 
 	//initial fill to snap back
 	for (int i = 0; i < 360; i ++)	torus_offset[i] = 3;
@@ -474,14 +467,14 @@ void model_board_redraw(GLuint video_texture, int frame){
 	
 	glColor4f(1.0,1.0,1.0,1.0);
 	
-	glRotatef(-portal_spin*3, 0, 0, 1); //make it spin
+	//glRotatef(-portal_spin*3, 0, 0, 1); //make it spin
 	glEnableClientState(GL_VERTEX_ARRAY);  
 	glEnableClientState(GL_COLOR_ARRAY);
 	draw_point_sprite_vertexes();
 	//glDisableClientState(GL_VERTEX_ARRAY); //Leave on for Points!
 	glDisableClientState(GL_COLOR_ARRAY);
 	glDisable( GL_POINT_SPRITE_ARB );
-glEnable(GL_DEPTH_TEST);
+	glEnable(GL_DEPTH_TEST);
 	
 	//TEXTURED TORUS 
 	CHECK_BIT(frame,1) ? glBindTexture(GL_TEXTURE_2D, orange_n) : glBindTexture(GL_TEXTURE_2D, blue_n);
