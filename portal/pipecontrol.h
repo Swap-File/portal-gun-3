@@ -1,6 +1,6 @@
 #ifndef _PIPECONTROL_H 
 #define _PIPECONTROL_H
-#include "arduino.h"
+
 #define AHRS_CLOSED 9
 #define AHRS_OPEN_BLUE 0
 #define AHRS_OPEN_ORANGE 6
@@ -10,7 +10,7 @@
 void pipecontrol_setup(int ip);
 void pipecontrol_cleanup(void);
 void aplay(const char *filename);
-void web_output(const this_gun_struct& this_gun,const arduino_struct& arduino);
+//void web_output(const this_gun_struct& this_gun,const arduino_struct& arduino);
 void ahrs_command(int x, int y, int z, int number);
 void gst_command(int number);
 void launch_gst_control(void);

@@ -4,7 +4,7 @@
 #define GST_BLANK 0
 #define GST_VIDEOTESTSRC 1 
 #define GST_VIDEOTESTSRC_CUBED 2 
-//#define GST_RPICAMSRC 3
+#define GST_RPICAMSRC 3
 #define GST_NORMAL 4
 
 //#define GST_LIBVISUAL_FIRST 10

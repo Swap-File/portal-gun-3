@@ -1,6 +1,5 @@
 #include "portal.h"
 #include "pipecontrol.h"
-#include "arduino.h"
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -138,7 +137,7 @@ void aplay(const char *filename){
 	fprintf(bash_fp, "aplay %s &\n",filename);
 	fflush(bash_fp);
 }
-
+/*
 void web_output(const this_gun_struct& this_gun,const arduino_struct& arduino ){
 	FILE *webout_fp;
 	webout_fp = fopen("/var/www/html/tmp/temp.txt", "w");
@@ -155,7 +154,7 @@ void web_output(const this_gun_struct& this_gun,const arduino_struct& arduino ){
 	fclose(webout_fp);
 	rename("/var/www/html/tmp/temp.txt","/var/www/html/tmp/portal.txt");
 }
-
+*/
 int read_web_pipe(this_gun_struct& this_gun){
 	int web_button = BUTTON_NONE;
 	int count = 1;

@@ -1,6 +1,6 @@
 OBJs := $(patsubst %.cpp, %.o, $(wildcard *.cpp)) 
 DEPs := $(OBJs:%.o=%.d)
-BIN  := portal
+BIN  := i2creader
 
 # Use a modern language
 CPPFLAGS += --std=c++0x
@@ -17,17 +17,14 @@ CPPFLAGS += -O2
 LDFLAGS += -lwiringPi -lpthread -lm
 
 .PHONY: all
-all: subprocesses portal
+all: subprocesses i2creader
 
-portal:	$(OBJs)
+i2creader:	$(OBJs)
 
 .PHONY: clean
 clean:
-	@rm -fv portal $(OBJs) $(DEPs) *.o
-	$(MAKE) -C gstvideo clean
-	$(MAKE) -C i2creader clean
+	@rm -fv i2creader $(OBJs) $(DEPs) *.o
 
+	
 .PHONY: subprocesses
 subprocesses:
-	$(MAKE) -C gstvideo
-	$(MAKE) -C i2creader

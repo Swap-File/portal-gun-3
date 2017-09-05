@@ -2,7 +2,6 @@
 #include "ledcontrol.h"
 #include "udpcontrol.h"
 #include "pipecontrol.h"
-#include "arduino.h"
 #include "statemachine.h"
 #include <stdio.h>
 #include <stdint.h>
@@ -25,10 +24,8 @@ int main(void){
 	
 	struct this_gun_struct this_gun;
 	struct other_gun_struct other_gun;
-	struct arduino_struct arduino;
-	
-
-	
+	//struct arduino_struct arduino;
+		
 	//stats
 	uint32_t time_start = 0;
 	int missed = 0;
