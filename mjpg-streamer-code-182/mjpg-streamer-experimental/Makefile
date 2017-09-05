@@ -15,8 +15,8 @@ DESTDIR = /usr/local
 # set the compiler to use
 CC = gcc
 
-SVNDEV := -D'SVN_REV="$(shell svnversion -c .)"'
-CFLAGS += $(SVNDEV)
+#SVNDEV := -D'SVN_REV="$(shell svnversion -c .)"'
+#CFLAGS += $(SVNDEV)
 
 # general compile flags, enable all warnings to make compile more verbose
 CFLAGS += -DLINUX -D_GNU_SOURCE -Wall 
@@ -32,13 +32,13 @@ LFLAGS += -lpthread -ldl
 APP_BINARY = mjpg_streamer
 
 # define the names and targets of the plugins
-PLUGINS = input_uvc.so
+#PLUGINS = input_uvc.so
 #PLUGINS += output_file.so
 #PLUGINS += output_udp.so
 PLUGINS += output_http.so
-PLUGINS += input_testpicture.so
+#PLUGINS += input_testpicture.so
 #PLUGINS += output_autofocus.so
-#PLUGINS += input_file.so
+PLUGINS += input_file.so
 # PLUGINS += input_pylon.so
 # PLUGINS += input_megatec.so
 # PLUGINS += output_mars2020.so
