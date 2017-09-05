@@ -121,7 +121,7 @@ void draw_torus_vbo(){
 
 //trail of points
 #define TRAIL_QTY    6
-#define TRAIL_LENGTH 10
+#define TRAIL_LENGTH 20
 #define TRAIL_OD     9.2
 #define TRAIL_ID     2
 static float cardinal_offset = 0.0;
@@ -137,7 +137,7 @@ void draw_point_sprite_vertexes(void){
 	
 	//overwrite the oldest point in each tail with the new head, render order doesnt matter
 	head_offset = (head_offset + 1) % TRAIL_LENGTH; 
-	
+	float helical_index = 0;
 	//do each head once
 	for (int trail_head = 0; trail_head < TRAIL_QTY; trail_head++){
 		
@@ -146,13 +146,16 @@ void draw_point_sprite_vertexes(void){
 		int color_index  = trail_head * 4 * TRAIL_LENGTH + head_offset * 4;	
 		
 		//find how far around the circle this head is
-		float position = (float)trail_head * (( 2 * M_PI )/((float)TRAIL_QTY));
+		float cardinal_index = (float)trail_head * (( 2 * M_PI )/((float)3));  //evenly space all heads
 		
 		//offset the position to get movement in a circle (controls cardinal speed)
-		float cardinal_position = position + cardinal_offset; 
+		float cardinal_position = cardinal_index + cardinal_offset; 
 			
+		//how far to spin the helix
+		helical_index =	helical_index + (( 2 * M_PI )*60.0/360.0);
+
 		//offset the position to get helical movement (controls helical speed)
-		float helical_position = position + helical_offset; //position in radian
+		float helical_position = helical_index + helical_offset; //position in radian
 		
 		//calculate helix coords
 		float z_helix = cos(helical_position) * TRAIL_ID ; 
@@ -171,7 +174,7 @@ void draw_point_sprite_vertexes(void){
 		
 	}
 	cardinal_offset -= .03;
-	helical_offset += .1;
+	helical_offset -= .1;
 	//draw the items
 	
 	glColorPointer(4, GL_FLOAT, 0, point_colors);
@@ -327,7 +330,6 @@ void model_board_init(void)
 		throw std::runtime_error("Loading textures failed.");
 	}
 
-
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND); 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
@@ -340,14 +342,14 @@ void model_board_init(void)
 	//setup point sprites
 	glTexEnvi(GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE);
 	
-	//check max and min point sizes
+	//check min and max point size	
 	//GLfloat sizes[2];
 	//glGetFloatv(GL_ALIASED_POINT_SIZE_RANGE, sizes);
 	//glPointParameterfARB( GL_POINT_SIZE_MAX_ARB, sizes[1]);
 	//glPointParameterfARB( GL_POINT_SIZE_MIN_ARB, sizes[0]);
 	//printf("Min point size: %f  Max Point size:  %f \n ",sizes[0] ,sizes[1] );
 
-	//setup automatic point size changing based on Z distance
+	//setup automatic point size changing based on Z distance(not used currently)
 	//float quadratic[] = { 1.0f, 0.0f, 0.01f };
 	//glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, quadratic );
 	
@@ -417,7 +419,6 @@ void model_board_redraw(GLuint video_texture, int frame){
 	//RESTART - CHECK IF I NEED TO SET ALL OF THESE EACH CYCLE!
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	glTranslatef(0, 0, -30);
@@ -467,7 +468,7 @@ void model_board_redraw(GLuint video_texture, int frame){
 	
 	glColor4f(1.0,1.0,1.0,1.0);
 	
-	//glRotatef(-portal_spin*3, 0, 0, 1); //make it spin
+	glRotatef(-portal_spin*3, 0, 0, 1); //slow the spin
 	glEnableClientState(GL_VERTEX_ARRAY);  
 	glEnableClientState(GL_COLOR_ARRAY);
 	draw_point_sprite_vertexes();
@@ -485,13 +486,9 @@ void model_board_redraw(GLuint video_texture, int frame){
 	//glEnableClientState(GL_VERTEX_ARRAY);  
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 	
-	
 	glPopMatrix(); //un-rotate and unscale the portal
 	glPopMatrix(); //unscale the global
 	
-
-
-	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
 	//MAIN SHUTTER (for safety, ensures the lasers don't turn on) 
 	glBindTexture(GL_TEXTURE_2D, 0); //no texture
 	GLfloat shutter = CHECK_BIT(frame,3) ? 0.0 : 1.0;
