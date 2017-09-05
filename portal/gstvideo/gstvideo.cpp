@@ -307,7 +307,19 @@ void start_pipeline(int input){
 		gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_NULL);
 	}
 	
-	pipeline_active = pipeline[input];
+	if (input >= GST_MOVIE_FIRST && input <= GST_MOVIE_LAST){
+		//if a movie is requested, load the shared movie pipeline
+		
+		pipeline_active = pipeline[GST_MOVIE_FIRST];
+		
+		//change the file location of the filesrc element here
+		int file_number = input - GST_MOVIE_FIRST;
+		
+	}else{
+		//lookup and load the pipeline
+		pipeline_active = pipeline[input];   
+	}
+	
 	
 	//if we dont se the callbacks here, the bus request handler can do it
 	//but explicitly setting it seems to be required when swapping pipelines
@@ -316,7 +328,7 @@ void start_pipeline(int input){
 	
 	//start the show
 	gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_PLAYING);	
-	
+		
 	printf("Pipeline %d changed to in %f seconds!\n",input,current_time() - start_time);
 }
 
@@ -482,16 +494,23 @@ int main(int argc, char *argv[]){
 	//Also, if too many pipelines get destroyed and recreated I have noticed gstreamer or x11 will eventually crash with context errors
 	//this can switch between pipelines in 5-20ms on a Pi3.
 	
+	//test patterns
 	load_pipeline(GST_BLANK ,(char *)"videotestsrc pattern=2 ! video/x-raw,width=640,height=480,framerate=(fraction)30/1 ! queue ! glupload ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true");
-	
 	load_pipeline(GST_VIDEOTESTSRC ,(char *)"videotestsrc ! video/x-raw,width=640,height=480,framerate=(fraction)30/1 ! queue ! glupload ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true");
 	load_pipeline(GST_VIDEOTESTSRC_CUBED ,(char *)"videotestsrc ! video/x-raw,width=640,height=480,framerate=(fraction)30/1 ! queue ! glupload ! glfiltercube ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true");
 
-	if(getenv("GORDON"))load_pipeline(GST_RPICAMSRC ,(char *)"rpicamsrc preview=0 ! image/jpeg,width=640,height=480,framerate=30/1 ! queue max-size-time=50000000 leaky=upstream ! jpegparse ! rtpjpegpay  ! udpsink host=192.168.1.169 port=9000 sync=false");
-	if(getenv("CHELL"))load_pipeline(GST_RPICAMSRC ,(char *)"rpicamsrc preview=0 ! image/jpeg,width=640,height=480,framerate=30/1 ! queue max-size-time=50000000 leaky=upstream ! jpegparse ! rtpjpegpay  ! udpsink host=192.168.1.120 port=9000 sync=false");
+	//camera launch
+	if(getenv("GORDON"))     load_pipeline(GST_RPICAMSRC ,(char *)"rpicamsrc preview=0 ! image/jpeg,width=640,height=480,framerate=30/1 ! queue max-size-time=50000000 leaky=upstream ! jpegparse ! rtpjpegpay ! udpsink host=192.168.1.169 port=9000 sync=false");
+	else if(getenv("CHELL")) load_pipeline(GST_RPICAMSRC ,(char *)"rpicamsrc preview=0 ! image/jpeg,width=640,height=480,framerate=30/1 ! queue max-size-time=50000000 leaky=upstream ! jpegparse ! rtpjpegpay ! udpsink host=192.168.1.120 port=9000 sync=false");
+	else {
+		printf("SET THE GORDON OR CHELL ENVIRONMENT VARIABLE!");
+		exit(1);
+	}
 	
+	//normal
 	load_pipeline(GST_NORMAL ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	
+	//cpu effects
     load_pipeline(GST_RADIOACTV    ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! radioactv     ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_REVTV        ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! revtv         ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_AGINGTV      ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! agingtv       ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
@@ -502,7 +521,8 @@ int main(int argc, char *argv[]){
 	load_pipeline(GST_RIPPLETV     ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! rippletv      ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_EDGETV       ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! edgetv        ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_STREAKTV     ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! streaktv      ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
-
+	
+	//gl effects
 	load_pipeline(GST_GLCUBE   ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! glupload ! glcolorconvert ! glfiltercube      ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_GLMIRROR ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! queue ! jpegdec ! glupload ! glcolorconvert ! gleffects_mirror  ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_GLSQUEEZE,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! queue ! jpegdec ! glupload ! glcolorconvert ! gleffects_squeeze ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
@@ -511,6 +531,17 @@ int main(int argc, char *argv[]){
 	load_pipeline(GST_GLTWIRL  ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! queue ! jpegdec ! glupload ! glcolorconvert ! gleffects_twirl   ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_GLBULGE  ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! queue ! jpegdec ! glupload ! glcolorconvert ! gleffects_bulge   ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_GLHEAT   ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! queue ! jpegdec ! glupload ! glcolorconvert ! gleffects_heat    ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
+	
+	//audio effects
+	load_pipeline(GST_LIBVISUAL_JESS    ,(char *)"alsasrc buffer-time=40000 ! queue max-size-time=50000000 leaky=upstream ! libvisual_jess     ! video/x-raw,width=320,height=240,framerate=15/1 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=false");
+	load_pipeline(GST_LIBVISUAL_INFINITE,(char *)"alsasrc buffer-time=40000 ! queue max-size-time=50000000 leaky=upstream ! libvisual_infinite ! video/x-raw,width=320,height=240,framerate=15/1 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=false");
+	load_pipeline(GST_LIBVISUAL_JAKDAW  ,(char *)"alsasrc buffer-time=40000 ! queue max-size-time=50000000 leaky=upstream ! libvisual_jakdaw   ! video/x-raw,width=320,height=240,framerate=15/1 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=false");
+	load_pipeline(GST_LIBVISUAL_OINKSIE ,(char *)"alsasrc buffer-time=40000 ! queue max-size-time=50000000 leaky=upstream ! libvisual_oinksie  ! video/x-raw,width=320,height=240,framerate=15/1 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=false");
+	load_pipeline(GST_GOOM              ,(char *)"alsasrc buffer-time=40000 ! queue max-size-time=50000000 leaky=upstream ! goom               ! video/x-raw,width=320,height=240,framerate=15/1 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=false");
+	load_pipeline(GST_GOOM2K1           ,(char *)"alsasrc buffer-time=40000 ! queue max-size-time=50000000 leaky=upstream ! goom2k1            ! video/x-raw,width=320,height=240,framerate=15/1 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=false");
+	
+	//videos -  all share the same pipeline, file location set at load
+	load_pipeline(GST_MOVIE_FIRST ,(char *)"filesrc ! qtdemux name=dmux ! queue ! avdec_h264 ! glupload ! glfilterapp name=grabtexture ! fakesink   dmux. ! aacparse !  avdec_aac ! audioconvert ! queue ! alsasink");
 	
 	
 	model_board_init();

@@ -7,14 +7,14 @@
 #define GST_RPICAMSRC 3
 #define GST_NORMAL 4
 
-//#define GST_LIBVISUAL_FIRST 10
-//#define GST_LIBVISUAL_JESS 10
-//#define GST_LIBVISUAL_INFINITE 11
-//#define GST_LIBVISUAL_JAKDAW 12
-//#define GST_LIBVISUAL_OINKSIE 13
-//#define GST_GOOM 14
-//#define GST_GOOM2K1 15
-//#define GST_LIBVISUAL_LAST 15
+#define GST_LIBVISUAL_FIRST 10
+#define GST_LIBVISUAL_JESS 10
+#define GST_LIBVISUAL_INFINITE 11
+#define GST_LIBVISUAL_JAKDAW 12
+#define GST_LIBVISUAL_OINKSIE 13
+#define GST_GOOM 14
+#define GST_GOOM2K1 15
+#define GST_LIBVISUAL_LAST 15
 
 #define GST_FIRST_EFFECT 18
 #define GST_FIRST_TV_EFFECT 18
@@ -42,19 +42,19 @@
 #define GST_LAST_GL_EFFECT 37
 #define GST_LAST_EFFECT 37			
 				
-//#define GST_MOVIE_FIRST 50
-//#define GST_MOVIE1 50
-//#define GST_MOVIE2 51
-//#define GST_MOVIE3 52
-//#define GST_MOVIE4 53
-//#define GST_MOVIE5 54
-//#define GST_MOVIE6 55
-//#define GST_MOVIE7 56
-//#define GST_MOVIE8 57
-//#define GST_MOVIE9 58
-//#define GST_MOVIE10 59
-//#define GST_MOVIE11 60
-//#define GST_MOVIE12 61
-//#define GST_MOVIE_LAST 61
+#define GST_MOVIE_FIRST 50
+#define GST_MOVIE1 50
+#define GST_MOVIE2 51
+#define GST_MOVIE3 52
+#define GST_MOVIE4 53
+#define GST_MOVIE5 54
+#define GST_MOVIE6 55
+#define GST_MOVIE7 56
+#define GST_MOVIE8 57
+#define GST_MOVIE9 58
+#define GST_MOVIE10 59
+#define GST_MOVIE11 60
+#define GST_MOVIE12 61
+#define GST_MOVIE_LAST 61
 		
 #endif
