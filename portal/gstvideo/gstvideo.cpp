@@ -69,7 +69,11 @@ static void reshape(int screen_width, int screen_height)
 	glFrustum(-hwd, hwd, -hht, hht, nearp, farp);
 	
 }
-
+static void seek_to_time (GstElement *pipeline, gint64 time_nanoseconds){
+  if (!gst_element_seek (pipeline, 1.0, GST_FORMAT_TIME, GST_SEEK_FLAG_FLUSH,GST_SEEK_TYPE_SET, time_nanoseconds, GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE)) {
+    g_print ("Seek failed!\n");
+  }
+}
 
 GstContext *x11context;
 GstContext *ctxcontext;
@@ -82,8 +86,8 @@ static gboolean bus_call (GstBus *bus, GstMessage *msg, gpointer data)
 	{
 	case GST_MESSAGE_EOS:
 		g_print ("End-of-stream\n");
-		g_main_loop_quit (loop);
-		break;
+		//g_main_loop_quit (loop);
+		break;	
 	case GST_MESSAGE_ERROR: //normal debug callback
 		{
 			gchar *debug = NULL;
@@ -298,28 +302,32 @@ gboolean drawCallback (GstElement* object, guint id , guint width ,guint height,
 }
 
 
-void start_pipeline(int input){
+
+static int video_mode_requested = 0;
+static int video_mode_current = -1;
+static int portal_mode_requested = 9;
+
+void start_pipeline(){
 	
 	double start_time = current_time();
 	
 	//stop the old pipeline
-	if (GST_IS_ELEMENT(pipeline_active)){ //supress errors when no pipeline is running (first startup)
-		gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_NULL);
+	if (video_mode_current >= GST_MOVIE_FIRST && video_mode_current <= GST_MOVIE_LAST){
+		gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_PAUSED);
+		
+	}
+	else{
+		if (GST_IS_ELEMENT(pipeline_active)){ //supress errors when no pipeline is running (first startup)
+			gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_NULL);
+		}
 	}
 	
-	if (input >= GST_MOVIE_FIRST && input <= GST_MOVIE_LAST){
-		//if a movie is requested, load the shared movie pipeline
-		
-		pipeline_active = pipeline[GST_MOVIE_FIRST];
-		
-		//change the file location of the filesrc element here
-		int file_number = input - GST_MOVIE_FIRST;
-		
-	}else{
-		//lookup and load the pipeline
-		pipeline_active = pipeline[input];   
-	}
+	pipeline_active = pipeline[video_mode_requested];   
 	
+	//rewind the video before hitting play
+	if (video_mode_requested >= GST_MOVIE_FIRST && video_mode_requested <= GST_MOVIE_LAST){
+		seek_to_time(GST_ELEMENT (pipeline_active),1);
+	}
 	
 	//if we dont se the callbacks here, the bus request handler can do it
 	//but explicitly setting it seems to be required when swapping pipelines
@@ -329,12 +337,10 @@ void start_pipeline(int input){
 	//start the show
 	gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_PLAYING);	
 		
-	printf("Pipeline %d changed to in %f seconds!\n",input,current_time() - start_time);
+	printf("Pipeline %d changed to in %f seconds!\n",portal_mode_requested,current_time() - start_time);
 }
 
-static int video_mode_requested = 0;
-static int video_mode_current = -1;
-static int portal_mode_requested = 9;
+
 	
 static gboolean idle_loop (gpointer data) {
 	
@@ -390,7 +396,7 @@ static gboolean idle_loop (gpointer data) {
 	}
 	
 	if (video_mode_requested != video_mode_current) {
-		start_pipeline(video_mode_requested);
+		start_pipeline();
 		video_mode_current = video_mode_requested;
 	}
 	
@@ -541,7 +547,11 @@ int main(int argc, char *argv[]){
 	load_pipeline(GST_GOOM2K1           ,(char *)"alsasrc buffer-time=40000 ! queue max-size-time=50000000 leaky=upstream ! goom2k1            ! video/x-raw,width=320,height=240,framerate=15/1 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=false");
 	
 	//videos -  all share the same pipeline, file location set at load
-	load_pipeline(GST_MOVIE_FIRST ,(char *)"filesrc ! qtdemux name=dmux ! queue ! avdec_h264 ! glupload ! glfilterapp name=grabtexture ! fakesink   dmux. ! aacparse !  avdec_aac ! audioconvert ! queue ! alsasink");
+	load_pipeline(GST_MOVIE1 ,(char *)"filesrc location=/home/pi/assets/movies/1.mp4 ! qtdemux name=dmux ! queue ! avdec_h264 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=false   dmux. ! aacparse !  avdec_aac ! audioconvert ! queue ! fakesink");
+	load_pipeline(GST_MOVIE2 ,(char *)"filesrc location=/home/pi/assets/movies/2.mp4 ! qtdemux name=dmux ! queue ! avdec_h264 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=false   dmux. ! aacparse !  avdec_aac ! audioconvert ! queue ! fakesink");
+	load_pipeline(GST_MOVIE3 ,(char *)"filesrc location=/home/pi/assets/movies/3.mp4 ! qtdemux name=dmux ! queue ! avdec_h264 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=false   dmux. ! aacparse !  avdec_aac ! audioconvert ! queue ! fakesink");
+	load_pipeline(GST_MOVIE4 ,(char *)"filesrc location=/home/pi/assets/movies/4.mp4 ! qtdemux name=dmux ! queue ! avdec_h264 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=false   dmux. ! aacparse !  avdec_aac ! audioconvert ! queue ! fakesink");
+	
 	
 	
 	model_board_init();
