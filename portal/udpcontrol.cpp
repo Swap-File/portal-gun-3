@@ -45,6 +45,7 @@ int get_ip(void){
 }
 
 int udpcontrol_setup(){
+	
 	int ip = get_ip();
 	
 	if (ip == 22){

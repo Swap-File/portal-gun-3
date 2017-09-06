@@ -1,3 +1,10 @@
+#ifndef _I2CREAD_H
+#define _I2CREAD_H
+
+
+void i2creader_update(this_gun_struct& this_gun);
+void i2creader_setup(void);
+
 //ACCEL STUFF
 
 #define CTRL_REG1_A  0x20
@@ -99,3 +106,5 @@
 #define	CONFIG_CQUE_NONE	(0x0003)	// Disable the comparator (default)
 
 #define	CONFIG_DEFAULT		(0x8583)	// From the datasheet
+
+#endif

@@ -25,9 +25,7 @@ portal:	$(OBJs)
 clean:
 	@rm -fv portal $(OBJs) $(DEPs) *.o
 	$(MAKE) -C gstvideo clean
-	$(MAKE) -C i2creader clean
 
 .PHONY: subprocesses
 subprocesses:
 	$(MAKE) -C gstvideo
-	$(MAKE) -C i2creader

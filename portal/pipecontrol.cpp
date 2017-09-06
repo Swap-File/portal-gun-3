@@ -17,7 +17,6 @@
 
 uint32_t ping_time = 0;
 uint8_t web_packet_counter = 0;
-int ip;
 
 int temp_in;
 int web_in;
@@ -43,14 +42,14 @@ void pipecontrol_cleanup(void){
 	system("pkill ahrs");
 }
 
-void pipecontrol_setup(int new_ip){
-	ip = new_ip;
-	
+void pipecontrol_setup(){
+
+
 	bash_fp = popen("bash", "w");
 	fcntl(fileno(bash_fp), F_SETFL, fcntl(fileno(bash_fp), F_GETFL, 0) | O_NONBLOCK);
 
-	launch_ahrs_control();
-	launch_gst_control();
+	//launch_ahrs_control();
+	//launch_gst_control();
 
 	mkfifo ("/home/pi/FIFO_PIPE", 0777 );
 	
@@ -69,8 +68,13 @@ void pipecontrol_setup(int new_ip){
 		
 	system("LD_LIBRARY_PATH=/usr/local/lib mjpg_streamer -i 'input_file.so -f /var/www/html/tmp -n snapshot.jpg' -o 'output_http.so -w /usr/local/www' &");
 	
-	if (ip == 22)		ping_fp = popen("ping 192.168.1.23", "r");
-	else if (ip == 23)	ping_fp = popen("ping 192.168.1.22", "r");
+	if(getenv("GORDON")) 		ping_fp = popen("ping 192.168.1.23", "r");
+	else if(getenv("CHELL")) 	ping_fp = popen("ping 192.168.1.22", "r");
+	else {
+		printf("SET THE GORDON OR CHELL ENVIRONMENT VARIABLE!");
+		exit(1);
+	}
+	
 	fcntl(fileno(ping_fp), F_SETFL, fcntl(fileno(ping_fp), F_GETFL, 0) | O_NONBLOCK);
 	
 	//empty named pipe
@@ -78,7 +82,7 @@ void pipecontrol_setup(int new_ip){
 	while(read(web_in, buffer, sizeof(buffer)-1));
 
 }
-
+/*
 void ahrs_command(int x, int y, int z, int number){
 	errno = 0;
 	int completed = 0;
@@ -131,14 +135,14 @@ void launch_gst_control(void){
 	fflush(bash_fp);
 	printf("GST_CONTROL : READY\n");
 }
-
+*/
 
 void aplay(const char *filename){
 	fprintf(bash_fp, "aplay %s &\n",filename);
 	fflush(bash_fp);
 }
-/*
-void web_output(const this_gun_struct& this_gun,const arduino_struct& arduino ){
+
+void web_output(const this_gun_struct& this_gun ){
 	FILE *webout_fp;
 	webout_fp = fopen("/var/www/html/tmp/temp.txt", "w");
 	fprintf(webout_fp, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %.2f %.2f %.2f %.2f %d\n" ,\
@@ -149,12 +153,12 @@ void web_output(const this_gun_struct& this_gun,const arduino_struct& arduino ){
 	this_gun.playlist_duo[0],this_gun.playlist_duo[1],this_gun.playlist_duo[2],this_gun.playlist_duo[3],\
 	this_gun.playlist_duo[4],this_gun.playlist_duo[5],this_gun.playlist_duo[6],this_gun.playlist_duo[7],\
 	this_gun.playlist_duo[8],this_gun.playlist_duo[9],this_gun.effect_duo,\
-	arduino.battery_level_pretty,arduino.temperature_pretty,this_gun.coretemp,\
+	this_gun.battery_level_pretty,this_gun.temperature_pretty,this_gun.coretemp,\
 	this_gun.latency,web_packet_counter++);
 	fclose(webout_fp);
 	rename("/var/www/html/tmp/temp.txt","/var/www/html/tmp/portal.txt");
 }
-*/
+
 int read_web_pipe(this_gun_struct& this_gun){
 	int web_button = BUTTON_NONE;
 	int count = 1;

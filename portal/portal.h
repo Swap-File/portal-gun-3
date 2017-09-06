@@ -27,6 +27,12 @@ struct this_gun_struct {
 	
 	float latency = 0.0;
 	float coretemp = 0.0;
+	
+	//imported from arduino
+	int accel[3];
+		
+	float  battery_level_pretty=0;
+	float  temperature_pretty=0;
 };  
 
 

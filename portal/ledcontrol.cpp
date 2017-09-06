@@ -18,6 +18,8 @@
 #define EFFECT_RESOLUTION 400
 #define BREATHING_RATE 2000
 
+#define CLK_PIN 25
+#define DATA_PIN 27
 
 CRGB main_buffer_step1[EFFECT_LENGTH];
 CRGB main_buffer_step2[EFFECT_LENGTH];
@@ -52,6 +54,8 @@ int ticks_since_overlay_enable = 0; //disabled overlay on bootup
 int width_update_speed_last_update = 0;
 uint8_t brightnesslookup[256][EFFECT_RESOLUTION];
 
+float ledcontrol_update(int width_temp,int width_speed_temp,int overlay_temp, int total_offset);
+
 void bang_buffer(uint8_t * input, int bytes){
 	
 	for (int i = 0; i < bytes; i++){	
@@ -59,12 +63,12 @@ void bang_buffer(uint8_t * input, int bytes){
 			
 			bool result = ((input[i]) & (0x80>>(j)));
 			
-			if (result)   digitalWrite (27, HIGH);
-			else   		  digitalWrite (27, LOW);
+			if (result)   digitalWrite (DATA_PIN, HIGH);
+			else   		  digitalWrite (DATA_PIN, LOW);
 		
-			digitalWrite (25, HIGH) ;
+			digitalWrite (CLK_PIN, HIGH) ;
 			delayMicroseconds (1);
-			digitalWrite (25, LOW);
+			digitalWrite (CLK_PIN, LOW);
 			
 		}	
 	}	
@@ -119,9 +123,8 @@ uint8_t led_update(const this_gun_struct& this_gun,const other_gun_struct& other
 
 void ledcontrol_setup(void) {
 	
-	wiringPiSetup () ;
-	pinMode (25, OUTPUT) ;
-	pinMode (27, OUTPUT) ;
+	pinMode (CLK_PIN, OUTPUT);
+	pinMode (DATA_PIN, OUTPUT);
 	
 	overlay_timer =  millis();
 	
@@ -141,14 +144,13 @@ void ledcontrol_setup(void) {
 		//printf( "\n");
 	}
 	
-
 	width_update_speed_last_update = millis();
 }
 
 //colortemp not used!
 float ledcontrol_update(int width_temp,int width_update_speed_temp,int overlay_temp, int  total_offset ) {
 
-	int start_time = micros();
+	//int start_time = micros();
 
 	if (total_offset_previous > 200 && total_offset < 200 && led_width_actual == 20){
 		//printf("RESET!\n");
@@ -343,9 +345,8 @@ float ledcontrol_update(int width_temp,int width_update_speed_temp,int overlay_t
 	
 	
 	bang_buffer(output_buffer, sizeof(output_buffer)) ;
-	//write(spi_handle,output_buffer,sizeof(output_buffer));
-	int done_time =  micros()- start_time;
-	printf("Benchmark Microseconds! %d \n",done_time);
+
+	//printf("Benchmark Microseconds! %d \n",micros()- start_time);
 	
 	//return a number representing the current breathing of the array for other LEDs to use
 	return effect_array[(total_offset + timeoffset) % EFFECT_RESOLUTION];
@@ -372,7 +373,6 @@ void ledcontrol_wipe(void){
 	
 	//end of data
 	for (int j = 0; j < 8; j++) output_buffer[i++] = 0x00;
-//write(spi_handle,output_buffer,sizeof(output_buffer));
 	bang_buffer(output_buffer, sizeof(output_buffer)) ;
 
 }
