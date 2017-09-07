@@ -69,11 +69,6 @@ static void reshape(int screen_width, int screen_height)
 	glFrustum(-hwd, hwd, -hht, hht, nearp, farp);
 	
 }
-static void seek_to_time (GstElement *pipeline, gint64 time_nanoseconds){
-  if (!gst_element_seek (pipeline, 1.0, GST_FORMAT_TIME, GST_SEEK_FLAG_FLUSH,GST_SEEK_TYPE_SET, time_nanoseconds, GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE)) {
-    g_print ("Seek failed!\n");
-  }
-}
 
 GstContext *x11context;
 GstContext *ctxcontext;
@@ -86,7 +81,8 @@ static gboolean bus_call (GstBus *bus, GstMessage *msg, gpointer data)
 	{
 	case GST_MESSAGE_EOS:
 		g_print ("End-of-stream\n");
-		//g_main_loop_quit (loop);
+		//add code to close the portal here!
+		
 		break;	
 	case GST_MESSAGE_ERROR: //normal debug callback
 		{
@@ -301,32 +297,64 @@ gboolean drawCallback (GstElement* object, guint id , guint width ,guint height,
 	return true;  //not sure why?
 }
 
+void load_pipeline(int i, char * text){
+	
+	printf("Loading pipeline %d\n",i);
+	
+	pipeline[i] = GST_PIPELINE (gst_parse_launch(text, NULL));
+
+	//set the bus watcher for error handling and to pass the x11 display and opengl context when the elements request it
+	//must be BEFORE setting the client-draw callback
+	GstBus *bus = gst_pipeline_get_bus (GST_PIPELINE (pipeline[i]));
+	gst_bus_add_watch (bus, bus_call, loop);
+	gst_object_unref (bus);
+	
+	//set the glfilterapp callback that will capture the textures
+	//do this AFTER attaching the bus handler so context can be set
+	GstElement *grabtexture = gst_bin_get_by_name (GST_BIN (pipeline[i]), "grabtexture");
+	g_signal_connect (grabtexture, "client-draw",  G_CALLBACK (drawCallback), NULL);
+	gst_object_unref (grabtexture);	
+}
 
 
 static int video_mode_requested = 0;
 static int video_mode_current = -1;
 static int portal_mode_requested = 9;
 
+void load_video_pipe(void){
+	load_pipeline(GST_MOVIE_FIRST ,(char *)"filesrc name=movieplayer ! qtdemux name=dmux ! queue ! avdec_h264 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=true  dmux. ! aacparse !  avdec_aac ! audioconvert ! queue ! fakesink");
+}
+
 void start_pipeline(){
 	
 	double start_time = current_time();
 	
 	//stop the old pipeline
-	if (video_mode_current >= GST_MOVIE_FIRST && video_mode_current <= GST_MOVIE_LAST){
-		gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_PAUSED);
-		
-	}
-	else{
-		if (GST_IS_ELEMENT(pipeline_active)){ //supress errors when no pipeline is running (first startup)
-			gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_NULL);
+	if (GST_IS_ELEMENT(pipeline_active)) {
+		gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_NULL);
+		//if its a video stream, unload it completely the video stream completely
+		if (video_mode_current >= GST_MOVIE_FIRST && video_mode_current <= GST_MOVIE_LAST){
+			gst_object_unref (GST_ELEMENT (pipeline_active));  
 		}
 	}
 	
-	pipeline_active = pipeline[video_mode_requested];   
-	
-	//rewind the video before hitting play
+	//prep the new pipeline
 	if (video_mode_requested >= GST_MOVIE_FIRST && video_mode_requested <= GST_MOVIE_LAST){
-		seek_to_time(GST_ELEMENT (pipeline_active),1);
+		
+		//dirty hack to reload pipeline, fixes qtdemux crash
+		load_video_pipe();
+		
+		pipeline_active = pipeline[GST_MOVIE_FIRST]; //all share the same pipeline
+
+		//set the file name
+		GstElement *movieplayer = gst_bin_get_by_name (GST_BIN (pipeline_active), "movieplayer");
+		char filename[100];
+		sprintf(filename,"/home/pi/assets/movies/%d.mp4",video_mode_requested - GST_MOVIE_FIRST + 1);		
+		g_object_set (movieplayer, "location",  filename, NULL);
+		gst_object_unref (movieplayer);	
+		
+	}else{
+		pipeline_active = pipeline[video_mode_requested]; 
 	}
 	
 	//if we dont se the callbacks here, the bus request handler can do it
@@ -336,12 +364,13 @@ void start_pipeline(){
 	
 	//start the show
 	gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_PLAYING);	
-		
-	printf("Pipeline %d changed to in %f seconds!\n",portal_mode_requested,current_time() - start_time);
+	
+	video_mode_current = video_mode_requested;
+	
+	printf("Pipeline %d changed to in %f seconds!\n",video_mode_current,current_time() - start_time);
 }
 
 
-	
 static gboolean idle_loop (gpointer data) {
 	
 	static int accleration[3];
@@ -359,20 +388,16 @@ static gboolean idle_loop (gpointer data) {
 		if (count > 1){ //ignore blank lines
 			buffer[count-1] = '\0';
 			//keep most recent line
-			int temp_state = 0;
-			int temp_video = 0;
-			int temp_a1 = 0;
-			int temp_a2 = 0;
-			int temp_a3 = 0;
-			int result = sscanf(buffer,"%d %d %d %d %d", &temp_state,&temp_video,&temp_a1,&temp_a2,&temp_a3);
+			int temp[5];
+			int result = sscanf(buffer,"%d %d %d %d %d", &temp[0],&temp[1],&temp[2],&temp[3],&temp[4]);
 			if (result != 5){
 				fprintf(stderr, "Unrecognized input with %d items.\n", result);
 			}else{
-				portal_mode_requested = temp_state;
-				video_mode_requested = temp_video;
-				accleration[0] = temp_a1;
-				accleration[1] = temp_a2;
-				accleration[2] = temp_a3;
+				portal_mode_requested = temp[0];
+				video_mode_requested  = temp[1];
+				accleration[0]        = temp[2];
+				accleration[1]        = temp[3];
+				accleration[2]        = temp[4];
 			}
 		}
 	}
@@ -395,47 +420,24 @@ static gboolean idle_loop (gpointer data) {
 		frames = 0;
 	}
 	
-	if (video_mode_requested != video_mode_current) {
-		start_pipeline();
-		video_mode_current = video_mode_requested;
-	}
+	if (video_mode_requested != video_mode_current) start_pipeline();
 	
 	//return true to automatically have this function called again when gstreamer is idle.
 	return true;
 }
 
-void load_pipeline(int i, char * text){
-	
-	printf("Loading pipeline %d\n",i);
-	
-	pipeline[i] = GST_PIPELINE (gst_parse_launch(text, NULL));
-
-	//set the bus watcher for error handling and to pass the x11 display and opengl context when the elements request it
-	//must be BEFORE setting the client-draw callback
-	GstBus *bus = gst_pipeline_get_bus (GST_PIPELINE (pipeline[i]));
-	gst_bus_add_watch (bus, bus_call, loop);
-	gst_object_unref (bus);
-	
-	//set the glfilterapp callback that will capture the textures
-	//do this AFTER attaching the bus handler so context can be set
-	GstElement *grabtexture = gst_bin_get_by_name (GST_BIN (pipeline[i]), "grabtexture");
-	g_signal_connect (grabtexture, "client-draw",  G_CALLBACK (drawCallback), NULL);
-	gst_object_unref (grabtexture);	
-}
-
 
 int main(int argc, char *argv[]){
-
 	
-	mkfifo ("GSTVIDEO_IN_PIPE", 0777 );
-	system("chown pi GSTVIDEO_IN_PIPE");
+	mkfifo ("/home/pi/GSTVIDEO_IN_PIPE", 0777 );
+	system("chown pi /home/pi/GSTVIDEO_IN_PIPE");
 	
 	//OPEN PIPE WITH READ ONLY
-	if ((input_command_pipe = open ("GSTVIDEO_IN_PIPE",  ( O_RDONLY | O_NONBLOCK ) ))<0){
+	if ((input_command_pipe = open ("/home/pi/GSTVIDEO_IN_PIPE",  ( O_RDONLY | O_NONBLOCK ) ))<0){
 		perror("GSTVIDEO: Could not open named pipe for reading.");
 		exit(-1);
 	}
-	printf("GSTVIDEO: GSTVIDEO_IN_PIPE has been opened.\n");
+	printf("GSTVIDEO: /home/pi/GSTVIDEO_IN_PIPE has been opened.\n");
 
 	fcntl(input_command_pipe, F_SETFL, fcntl(input_command_pipe, F_GETFL, 0) | O_NONBLOCK);
 	
@@ -454,12 +456,11 @@ int main(int argc, char *argv[]){
 		return -1;
 	}
 
-	make_window(dpy, "glxgears", x, y, winWidth, winHeight, &win, &ctx, &visId);
+	make_window(dpy, "gstvideo", x, y, winWidth, winHeight, &win, &ctx, &visId);
 	XMapWindow(dpy, win);
 	glXMakeCurrent(dpy, win, ctx);
 	query_vsync(dpy, win);
 
-	
 	/* Inspect the texture */
 	//snapshot(normal_texture);
 	
@@ -471,7 +472,6 @@ int main(int argc, char *argv[]){
 		printf("VisualID %d, 0x%x\n", (int) visId, (int) visId);
 	}
 
-
 	/* Set initial projection/viewing transformation.
 	* We can't be sure we'll get a ConfigureNotify event when the window
 	* first appears.
@@ -479,7 +479,7 @@ int main(int argc, char *argv[]){
 	reshape(winWidth, winHeight);
 	
 	/* Initialize GStreamer */
-	const char *arg1_gst[]  = {"glxgears"}; 
+	const char *arg1_gst[]  = {"gstvideo"}; 
 	const char *arg2_gst[]  = {"--gst-disable-registry-update"};  //dont rescan the registry to load faster.
 	const char *arg3_gst[]  = {"--gst-debug-level=1"};  //dont show debug messages
 	char ** argv_gst[3] = {(char **)arg1_gst,(char **)arg2_gst,(char **)arg3_gst};
@@ -517,7 +517,7 @@ int main(int argc, char *argv[]){
 	load_pipeline(GST_NORMAL ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	
 	//cpu effects
-    load_pipeline(GST_RADIOACTV    ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! radioactv     ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
+	load_pipeline(GST_RADIOACTV    ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! radioactv     ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_REVTV        ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! revtv         ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_AGINGTV      ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! agingtv       ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_DICETV       ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! dicetv        ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
@@ -528,7 +528,7 @@ int main(int argc, char *argv[]){
 	load_pipeline(GST_EDGETV       ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! edgetv        ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_STREAKTV     ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! streaktv      ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	
-	//gl effects
+	//gl effects - jpegdec then queue, or queue then jpegdec?  TEST IT
 	load_pipeline(GST_GLCUBE   ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! glupload ! glcolorconvert ! glfiltercube      ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_GLMIRROR ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! queue ! jpegdec ! glupload ! glcolorconvert ! gleffects_mirror  ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_GLSQUEEZE,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! queue ! jpegdec ! glupload ! glcolorconvert ! gleffects_squeeze ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
@@ -538,7 +538,7 @@ int main(int argc, char *argv[]){
 	load_pipeline(GST_GLBULGE  ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! queue ! jpegdec ! glupload ! glcolorconvert ! gleffects_bulge   ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_GLHEAT   ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! queue ! jpegdec ! glupload ! glcolorconvert ! gleffects_heat    ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	
-	//audio effects
+	//audio effects - test these when the soundcard arrives (set devices!)
 	load_pipeline(GST_LIBVISUAL_JESS    ,(char *)"alsasrc buffer-time=40000 ! queue max-size-time=50000000 leaky=upstream ! libvisual_jess     ! video/x-raw,width=320,height=240,framerate=15/1 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_LIBVISUAL_INFINITE,(char *)"alsasrc buffer-time=40000 ! queue max-size-time=50000000 leaky=upstream ! libvisual_infinite ! video/x-raw,width=320,height=240,framerate=15/1 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_LIBVISUAL_JAKDAW  ,(char *)"alsasrc buffer-time=40000 ! queue max-size-time=50000000 leaky=upstream ! libvisual_jakdaw   ! video/x-raw,width=320,height=240,framerate=15/1 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=false");
@@ -546,13 +546,8 @@ int main(int argc, char *argv[]){
 	load_pipeline(GST_GOOM              ,(char *)"alsasrc buffer-time=40000 ! queue max-size-time=50000000 leaky=upstream ! goom               ! video/x-raw,width=320,height=240,framerate=15/1 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_GOOM2K1           ,(char *)"alsasrc buffer-time=40000 ! queue max-size-time=50000000 leaky=upstream ! goom2k1            ! video/x-raw,width=320,height=240,framerate=15/1 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=false");
 	
-	//videos -  all share the same pipeline, file location set at load
-	load_pipeline(GST_MOVIE1 ,(char *)"filesrc location=/home/pi/assets/movies/1.mp4 ! qtdemux name=dmux ! queue ! avdec_h264 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=false   dmux. ! aacparse !  avdec_aac ! audioconvert ! queue ! fakesink");
-	load_pipeline(GST_MOVIE2 ,(char *)"filesrc location=/home/pi/assets/movies/2.mp4 ! qtdemux name=dmux ! queue ! avdec_h264 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=false   dmux. ! aacparse !  avdec_aac ! audioconvert ! queue ! fakesink");
-	load_pipeline(GST_MOVIE3 ,(char *)"filesrc location=/home/pi/assets/movies/3.mp4 ! qtdemux name=dmux ! queue ! avdec_h264 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=false   dmux. ! aacparse !  avdec_aac ! audioconvert ! queue ! fakesink");
-	load_pipeline(GST_MOVIE4 ,(char *)"filesrc location=/home/pi/assets/movies/4.mp4 ! qtdemux name=dmux ! queue ! avdec_h264 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=false   dmux. ! aacparse !  avdec_aac ! audioconvert ! queue ! fakesink");
-	
-	
+	//videos -  all share the same pipeline, location property set at load
+	load_video_pipe();
 	
 	model_board_init();
 	
