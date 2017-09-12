@@ -1,0 +1,2 @@
+#!/bin/bash
+gst-launch-1.0 -vvv udpsrc port=9000 caps=application/x-rtp,media=audio,clock-rate=44100,encoding-name=L16,endcoding-params=2,payload=96 retrieve-sender-address=false ! rtpL16depay  ! queue max-size-time=10000000 leaky=downstream ! audioconvert !   libvisual_jakdaw   ! video/x-raw,width=320,height=240,framerate=30/1 ! queue ! glupload ! glcolorconvert ! glcolorscale ! 'video/x-raw(memory:GLMemory),width=640,height=480' ! glimagesink sync=true

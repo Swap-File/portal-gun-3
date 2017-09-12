@@ -31,6 +31,8 @@ Display *dpy;
 Window win;
 GLXContext ctx;
 
+GstPad *outputpads[6];	
+GstElement *outputselector;
 GstPipeline *pipeline[75],*pipeline_active;
 
 GLuint normal_texture;
@@ -311,9 +313,11 @@ void load_pipeline(int i, char * text){
 	
 	//set the glfilterapp callback that will capture the textures
 	//do this AFTER attaching the bus handler so context can be set
-	GstElement *grabtexture = gst_bin_get_by_name (GST_BIN (pipeline[i]), "grabtexture");
-	g_signal_connect (grabtexture, "client-draw",  G_CALLBACK (drawCallback), NULL);
-	gst_object_unref (grabtexture);	
+	if (i != GST_RPICAMSRC){  //the camera bus has no texture output
+		GstElement *grabtexture = gst_bin_get_by_name (GST_BIN (pipeline[i]), "grabtexture");
+		g_signal_connect (grabtexture, "client-draw",  G_CALLBACK (drawCallback), NULL);
+		gst_object_unref (grabtexture);	
+	}
 }
 
 
@@ -322,7 +326,10 @@ static int video_mode_current = -1;
 static int portal_mode_requested = 9;
 
 void load_video_pipe(void){
-	load_pipeline(GST_MOVIE_FIRST ,(char *)"filesrc name=movieplayer ! qtdemux name=dmux ! queue ! avdec_h264 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=true  dmux. ! aacparse !  avdec_aac ! audioconvert ! queue ! fakesink");
+	load_pipeline(GST_MOVIE_FIRST ,(char *) "filesrc name=movieplayer ! qtdemux name=dmux ! queue ! avdec_h264 ! queue ! "
+	"glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! "
+	"glfilterapp name=grabtexture ! fakesink sync=true "
+	"dmux. ! queue ! aacparse !  avdec_aac ! audioconvert ! alsasink");
 }
 
 void start_pipeline(){
@@ -331,8 +338,19 @@ void start_pipeline(){
 	
 	//stop the old pipeline
 	if (GST_IS_ELEMENT(pipeline_active)) {
-		gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_NULL);
-		//if its a video stream, unload it completely the video stream completely
+		
+		//if we are leaving a audio effect mode 
+		if (video_mode_current >= GST_LIBVISUAL_FIRST && video_mode_current <= GST_LIBVISUAL_LAST){
+			//only pause  if we are going to a non audio mode from a audio mode, otherwise switch it live
+			if (portal_mode_requested < GST_LIBVISUAL_FIRST && portal_mode_requested > GST_LIBVISUAL_LAST){
+				gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_PAUSED);
+			}
+		}else{	
+			//null everything else		
+			gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_NULL);
+		}
+		
+		//if its a video stream, unload it completely
 		if (video_mode_current >= GST_MOVIE_FIRST && video_mode_current <= GST_MOVIE_LAST){
 			gst_object_unref (GST_ELEMENT (pipeline_active));  
 		}
@@ -352,7 +370,11 @@ void start_pipeline(){
 		sprintf(filename,"/home/pi/assets/movies/%d.mp4",video_mode_requested - GST_MOVIE_FIRST + 1);		
 		g_object_set (movieplayer, "location",  filename, NULL);
 		gst_object_unref (movieplayer);	
-		
+	}
+	else if (video_mode_requested >= GST_LIBVISUAL_FIRST && video_mode_requested <= GST_LIBVISUAL_LAST){
+
+		g_object_set (outputselector, "active-pad",  outputpads[video_mode_requested - GST_LIBVISUAL_FIRST], NULL);
+	
 	}else{
 		pipeline_active = pipeline[video_mode_requested]; 
 	}
@@ -506,13 +528,23 @@ int main(int argc, char *argv[]){
 	load_pipeline(GST_VIDEOTESTSRC_CUBED ,(char *)"videotestsrc ! video/x-raw,width=640,height=480,framerate=(fraction)30/1 ! queue ! glupload ! glfiltercube ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true");
 
 	//camera launch
-	if(getenv("GORDON"))     load_pipeline(GST_RPICAMSRC ,(char *)"rpicamsrc preview=0 ! image/jpeg,width=640,height=480,framerate=30/1 ! queue max-size-time=50000000 leaky=upstream ! jpegparse ! rtpjpegpay ! udpsink host=192.168.1.169 port=9000 sync=false");
-	else if(getenv("CHELL")) load_pipeline(GST_RPICAMSRC ,(char *)"rpicamsrc preview=0 ! image/jpeg,width=640,height=480,framerate=30/1 ! queue max-size-time=50000000 leaky=upstream ! jpegparse ! rtpjpegpay ! udpsink host=192.168.1.120 port=9000 sync=false");
+	if(getenv("GORDON"))    {load_pipeline(GST_RPICAMSRC ,(char *)"rpicamsrc preview=0 ! image/jpeg,width=640,height=480,framerate=30/1 ! "
+	"queue max-size-time=50000000 leaky=upstream ! jpegparse ! tee name=t "
+	"t. ! queue ! rtpjpegpay ! udpsink host=192.168.1.169 port=9000 sync=false "
+	"t. ! queue ! rtpjpegpay ! udpsink host=127.0.0.1     port=8999 sync=false "
+	"t. ! queue ! multifilesink location=/var/www/html/tmp/snapshot.jpg");
+	}else if(getenv("CHELL")){
+	load_pipeline(GST_RPICAMSRC ,(char *)"rpicamsrc preview=0 ! image/jpeg,width=640,height=480,framerate=30/1 ! "
+	"queue max-size-time=50000000 leaky=upstream ! jpegparse ! tee name=t "
+	"t. ! queue ! rtpjpegpay ! udpsink host=192.168.1.169 port=9000 sync=false "
+	"t. ! queue ! rtpjpegpay ! udpsink host=127.0.0.1     port=8999 sync=false "
+	"t. ! queue ! multifilesink location=/var/www/html/tmp/snapshot.jpg");
+	}
 	else {
 		printf("SET THE GORDON OR CHELL ENVIRONMENT VARIABLE!");
 		exit(1);
 	}
-	
+
 	//normal
 	load_pipeline(GST_NORMAL ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	
@@ -538,16 +570,35 @@ int main(int argc, char *argv[]){
 	load_pipeline(GST_GLBULGE  ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! queue ! jpegdec ! glupload ! glcolorconvert ! gleffects_bulge   ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_GLHEAT   ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! queue ! jpegdec ! glupload ! glcolorconvert ! gleffects_heat    ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	
-	//audio effects - test these when the soundcard arrives (set devices!)
-	load_pipeline(GST_LIBVISUAL_JESS    ,(char *)"alsasrc buffer-time=40000 ! queue max-size-time=50000000 leaky=upstream ! libvisual_jess     ! video/x-raw,width=320,height=240,framerate=15/1 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=false");
-	load_pipeline(GST_LIBVISUAL_INFINITE,(char *)"alsasrc buffer-time=40000 ! queue max-size-time=50000000 leaky=upstream ! libvisual_infinite ! video/x-raw,width=320,height=240,framerate=15/1 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=false");
-	load_pipeline(GST_LIBVISUAL_JAKDAW  ,(char *)"alsasrc buffer-time=40000 ! queue max-size-time=50000000 leaky=upstream ! libvisual_jakdaw   ! video/x-raw,width=320,height=240,framerate=15/1 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=false");
-	load_pipeline(GST_LIBVISUAL_OINKSIE ,(char *)"alsasrc buffer-time=40000 ! queue max-size-time=50000000 leaky=upstream ! libvisual_oinksie  ! video/x-raw,width=320,height=240,framerate=15/1 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=false");
-	load_pipeline(GST_GOOM              ,(char *)"alsasrc buffer-time=40000 ! queue max-size-time=50000000 leaky=upstream ! goom               ! video/x-raw,width=320,height=240,framerate=15/1 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=false");
-	load_pipeline(GST_GOOM2K1           ,(char *)"alsasrc buffer-time=40000 ! queue max-size-time=50000000 leaky=upstream ! goom2k1            ! video/x-raw,width=320,height=240,framerate=15/1 ! queue ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! glfilterapp name=grabtexture ! fakesink sync=false");
+	//audio effects - alsasrc takes a second or so to init, so here a output-selector is used
+	//effect order matters since pads on the output selector can't easily be named in advance 
+	load_pipeline(GST_LIBVISUAL_FIRST,(char *)"alsasrc buffer-time=10000 ! queue max-size-time=10000000 leaky=downstream ! "
+	"output-selector name=audioin pad-negotiation-mode=Active "
+	"audioin. ! libvisual_jess     ! videosink. "
+	"audioin. ! libvisual_infinite ! videosink. "
+	"audioin. ! libvisual_jakdaw   ! videosink. "
+	"audioin. ! libvisual_oinksie  ! videosink. "
+	"audioin. ! goom               ! videosink. "
+	"audioin. ! goom2k1            ! videosink. "
+	"funnel name=videosink ! video/x-raw,width=320,height=240,framerate=30/1 ! queue ! "
+	"glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! "
+	"glfilterapp name=grabtexture ! fakesink sync=false async=false");
 	
+	//save the output pads from the visualization pipelines
+	
+	//get the output-selector element
+	outputselector = gst_bin_get_by_name (GST_BIN (pipeline[GST_LIBVISUAL_FIRST]), "audioin");
+	
+	//save each output pad for later
+	outputpads[0] = gst_element_get_static_pad(outputselector,"src_0");
+	outputpads[1] = gst_element_get_static_pad(outputselector,"src_1");
+	outputpads[2] = gst_element_get_static_pad(outputselector,"src_2");
+	outputpads[3] = gst_element_get_static_pad(outputselector,"src_3");
+	outputpads[4] = gst_element_get_static_pad(outputselector,"src_4");
+	outputpads[5] = gst_element_get_static_pad(outputselector,"src_5");
+
 	//videos -  all share the same pipeline, location property set at load
-	load_video_pipe();
+	load_video_pipe(); //look in this function for the pipeline!
 	
 	model_board_init();
 	
@@ -561,6 +612,6 @@ int main(int argc, char *argv[]){
 	glXDestroyContext(dpy, ctx);
 	XDestroyWindow(dpy, win);
 	XCloseDisplay(dpy);
-
+	
 	return 0;
 }
