@@ -16,6 +16,7 @@
 #include <GL/gl.h>
 #include <GL/glx.h>
 
+#include <signal.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -26,6 +27,7 @@
 #include <string>
 
 #include "model_board/model_board.h"
+int parentpid = 0;
 int input_command_pipe;
 Display *dpy;
 Window win;
@@ -83,8 +85,9 @@ static gboolean bus_call (GstBus *bus, GstMessage *msg, gpointer data)
 	{
 	case GST_MESSAGE_EOS:
 		g_print ("End-of-stream\n");
-		//add code to close the portal here!
-		
+		if (parentpid != 0){
+			kill(parentpid,SIGUSR2);
+		}
 		break;	
 	case GST_MESSAGE_ERROR: //normal debug callback
 		{
@@ -450,6 +453,13 @@ static gboolean idle_loop (gpointer data) {
 
 
 int main(int argc, char *argv[]){
+	
+	if (argc < 2){
+		printf("GSTVIDEO: No Parent Pid Supplied, EoS signaling disabled!");
+	}else{
+		parentpid = atoi(argv[1]);
+	}
+	printf("GSTVIDEO: Using PID %d!\n",parentpid);
 	
 	mkfifo ("/home/pi/GSTVIDEO_IN_PIPE", 0777 );
 	system("chown pi /home/pi/GSTVIDEO_IN_PIPE");

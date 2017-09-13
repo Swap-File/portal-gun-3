@@ -1,6 +1,7 @@
 #include "portal.h"
 #include "i2cread.h"
 #include "ledcontrol.h"
+#include "inputoutput.h"
 #include "udpcontrol.h"
 #include "pipecontrol.h"
 #include "statemachine.h"
@@ -18,12 +19,24 @@ void INThandler(int dummy) {
 	exit(1);
 }
 
+void gstvideo_handler(int dummy) {
+	printf("\nVideo is done, bump state...\n");
+}
+
 int main(void){
 	pipecontrol_cleanup();
 	
 	struct this_gun_struct this_gun;
 	struct other_gun_struct other_gun;
 
+	//catch broken pipes to respawn threads if they crash
+	signal(SIGPIPE, SIG_IGN);
+	//catch ctrl+c when exiting
+	signal(SIGINT, INThandler);
+	//catch signal from gstvideo when videos are done
+	signal(SIGUSR2, gstvideo_handler);
+	
+	
 	//stats
 	uint32_t time_start = 0;
 	int missed = 0;
@@ -33,7 +46,7 @@ int main(void){
 	int changes = 0;
 	
 	//setup libaries
-	wiringPiSetup () ;
+	inputoutput_setup();
 	ledcontrol_setup();
 	i2creader_setup();	
 	//int ip = udpcontrol_setup();

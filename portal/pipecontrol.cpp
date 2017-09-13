@@ -38,8 +38,7 @@ void pipecontrol_cleanup(void){
 	printf("KILLING OLD PROCESSES\n");
 	system("pkill gst");
 	system("pkill mjpeg");
-	system("pkill raspivid");
-	system("pkill ahrs");
+	system("pkill fbvideo");
 }
 
 void pipecontrol_setup(){
