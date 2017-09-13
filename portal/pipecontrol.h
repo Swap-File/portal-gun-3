@@ -7,6 +7,11 @@
 #define AHRS_CLOSED_BLUE 1
 #define AHRS_CLOSED_ORANGE 7
 
+#define WEB_PRIMARY_FIRE 100
+#define WEB_ALT_FIRE 101
+#define WEB_MODE_TOGGLE 102
+#define WEB_RESET 103
+
 void pipecontrol_setup(void);
 void pipecontrol_cleanup(void);
 void aplay(const char *filename);

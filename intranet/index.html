@@ -27,11 +27,10 @@
 </tr>
 </table>
 <br>
-<input type="button" class="button" id="orangeduo" value="0" onclick="post_button(100)"/>
-<input type="button" class="button" id="orangesolo" value="0" onclick="post_button(101)"/>
-<input type="button" class="button" id="close" value="Close" onclick="post_button(102)"/>
-<input type="button" class="button" id="bluesolo" value="0" onclick="post_button(103)"/>
-<input type="button" class="button" id="blueduo" value="0" onclick="post_button(104)"/>
+<input type="button" class="button" id="primary_fire" value="Primary" onclick="post_button(100)"/>
+<input type="button" class="button" id="alt_fire" value="Alt" onclick="post_button(101)"/>
+<input type="button" class="button" id="mode_toggle" value="Mode" onclick="post_button(102)"/>
+<input type="button" class="button" id="reset" value="Reset" onclick="post_button(103)"/>
 <br>
 <br>
 <div class="hidden_div" id="imageWrapper"> 
@@ -291,6 +290,7 @@ if (portal_type == ""){
 }
 portal_type_select.value = portal_type;
 
+var gunmode = -1;
 var portal_color = -1;
 var loading = 1;
 var latency_last = -1;
@@ -503,14 +503,11 @@ function reinit_all(){
 	arduino_battery_level_last = -1;
 	arduino_temp_last = -1;
 	
-	orangeduo.style.backgroundColor = "";
-	orangeduo.style.color = "transparent";		
-	blueduo.style.backgroundColor = "";
-	blueduo.style.color = "transparent";	
-	bluesolo.style.backgroundColor = "";
-	bluesolo.style.color = "transparent";	
-	orangesolo.style.backgroundColor = "";		
-	orangesolo.style.color = "transparent";	
+	primary_fire.style.backgroundColor = "";
+	primary_fire.style.color = "transparent";		
+	alt_fire.style.backgroundColor = "";
+	alt_fire.style.color = "transparent";	
+
 	
 	mode_set();
 }
@@ -731,6 +728,15 @@ function update_data() {
 				state_solo = parseInt(res[0]);
 				state_duo = parseInt(res[1]);
 				
+				//mode toggle
+				gunmode = parseInt(res[31]);
+				
+				if (gunmode == 2){
+					mode_toggle.value = "Duo"
+				}else if (gunmode == 1){
+					mode_toggle.value = "Solo"
+				}
+				
 				var ir_pwm = parseInt(res[3]);
 				if (ir_pwm_last != ir_pwm){
 					//top option is current setting
@@ -814,62 +820,36 @@ function update_data() {
 						portal_text.innerHTML = "";
 						portal_back.src = "blank.png";
 						portal_front.src = "blank.png";
-						orangeduo.style.backgroundColor = "orange";
-						orangeduo.style.color = "black";
-						blueduo.style.backgroundColor = "blue";
-						blueduo.style.color = "white";
-						orangesolo.style.backgroundColor = "orange";
-						orangesolo.style.color = "black";
-						bluesolo.style.backgroundColor = "blue";
-						bluesolo.style.color = "white";
-						bluesolo.value = "Solo";
-						orangesolo.value = "Solo";
-						blueduo.value = "Duo";
-						orangeduo.value = "Duo";
+						
+						primary_fire.value = "Primary"
+						primary_fire.style.backgroundColor = "orange";
+						primary_fire.style.color = "black";
+						
+						alt_fire.value = "Alt"
+						alt_fire.style.backgroundColor = "blue";
+						alt_fire.style.color = "white";
+						
 					}
-					else if (state_solo > 0){
-						orangeduo.style.backgroundColor = "orange";
-						orangeduo.style.color = "transparent";
-						blueduo.style.backgroundColor = "";
-						blueduo.style.color = "transparent";
-						bluesolo.style.backgroundColor = "";
-						bluesolo.style.color = "transparent";
-						orangesolo.style.backgroundColor = "orange";
-						orangesolo.value = state_solo;
-						orangesolo.style.color = "black";
+					else if (state_solo > 0 || state_duo > 0){
+						primary_fire.style.backgroundColor = "orange";
+						primary_fire.style.color = "black";
+
+						alt_fire.style.backgroundColor = "";
+						alt_fire.style.color = "";
+						
+						primary_fire.value = (state_solo + state_duo); //postive value only, add them togehter
 					}
-					else if (state_solo < 0){
-						orangeduo.style.backgroundColor = "";
-						orangeduo.style.color = "transparent";
-						blueduo.style.backgroundColor = "blue";
-						blueduo.style.color = "transparent";
-						orangesolo.style.backgroundColor = "";
-						orangesolo.style.color = "transparent";
-						bluesolo.style.backgroundColor = "blue";
-						bluesolo.value = state_solo * -1;
-						bluesolo.style.color = "white";
-					}
-					else if (state_duo > 0){
-						blueduo.style.backgroundColor = "";
-						blueduo.style.color = "transparent";
-						orangesolo.style.backgroundColor = "orange";
-						orangesolo.style.color = "transparent";
-						bluesolo.style.backgroundColor = "";
-						bluesolo.style.color = "transparent";
-						orangeduo.style.backgroundColor = "orange";
-						orangeduo.value = state_duo;
-						orangeduo.style.color = "black";
-					}
-					else if (state_duo < 0){
-						orangeduo.style.backgroundColor = "";
-						orangeduo.style.color = "transparent";
-						orangesolo.style.backgroundColor = "";
-						orangesolo.style.color = "transparent";
-						bluesolo.style.backgroundColor = "blue";
-						bluesolo.style.color = "transparent";
-						blueduo.style.backgroundColor = "blue";
-						blueduo.value = state_duo * -1;
-						blueduo.style.color = "white";
+					else if (state_solo < 0 || state_duo < 0){
+					
+						primary_fire.style.backgroundColor = "blue";
+						primary_fire.style.color = "white";
+						
+						alt_fire.style.backgroundColor = "";
+						alt_fire.style.color = "";
+		
+						primary_fire.value = (state_solo + state_duo) * -1; //postive value only, add them togehter
+					
+						
 					}
 					update_portal_forground();
 					update_portal_background();

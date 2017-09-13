@@ -67,7 +67,7 @@ int main(void){
 		//button_event = arduino_update(this_gun);
 		
 		//if no event, read from the web
-		//if (button_event == BUTTON_NONE) button_event = read_web_pipe(this_gun);
+		if (button_event == BUTTON_NONE) button_event = read_web_pipe(this_gun);
 		//read other gun's data, only if no button events are happening this cycle
 		
 		while (button_event == BUTTON_NONE){
@@ -128,20 +128,21 @@ int main(void){
 		}
 
 		//OUTPUT TO gstvideo (combo video and 3d data)
-		
+
 		//switch off updating the leds or i2c every other cycle, each takes about 1ms
 		if(freq_50hz){ 
 			this_gun.brightness = led_update(this_gun,other_gun);
 		}
 		else{
 			i2creader_update(this_gun);
+			//printf(" %d %d %d %f\n",this_gun.accel[0],this_gun.accel[1],this_gun.accel[2] ,this_gun.battery_level_pretty);
 		}
 		
 		
 		//send data to other gun
 		static uint32_t time_udp_send = 0;
 		if (this_gun.clock - time_udp_send > 100){
-			//udp_send_state(this_gun.state_duo,this_gun.clock);
+			udp_send_state(this_gun.state_duo,this_gun.clock);
 			time_udp_send = this_gun.clock;
 			web_output(this_gun);
 		}
@@ -149,7 +150,7 @@ int main(void){
 		//cycle end code - fps counter and stats
 		fps++;
 		if (time_fps < millis()){		
-			printf("MAIN FPS:%d mis:%d idle:%d%% changes:%d\n",fps,missed,time_delay/10,changes);
+			printf("MAIN FPS:%d mis:%d idle:%d%% changes:%d \n",fps,missed,time_delay/10,changes);
 			fps = 0;
 			time_delay = 0;
 			time_fps += 1000;

@@ -1,6 +1,7 @@
 OBJs := $(patsubst %.cpp, %.o, $(wildcard *.cpp)) 
 DEPs := $(OBJs:%.o=%.d)
 BIN  := portal
+CC  = g++
 
 # Use a modern language
 CPPFLAGS += --std=c++0x
@@ -25,7 +26,9 @@ portal:	$(OBJs)
 clean:
 	@rm -fv portal $(OBJs) $(DEPs) *.o
 	$(MAKE) -C gstvideo clean
+	$(MAKE) -C fbvideo clean
 
 .PHONY: subprocesses
 subprocesses:
 	$(MAKE) -C gstvideo
+	$(MAKE) -C fbvideo

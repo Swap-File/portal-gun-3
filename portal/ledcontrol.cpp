@@ -65,9 +65,9 @@ void bang_buffer(uint8_t * input, int bytes){
 			
 			if (result)   digitalWrite (DATA_PIN, HIGH);
 			else   		  digitalWrite (DATA_PIN, LOW);
-		
+		delayMicroseconds (1);
 			digitalWrite (CLK_PIN, HIGH) ;
-			delayMicroseconds (1);
+			delayMicroseconds (2);
 			digitalWrite (CLK_PIN, LOW);
 			
 		}	

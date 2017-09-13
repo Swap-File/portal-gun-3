@@ -17,74 +17,80 @@ void local_state_engine(int button, this_gun_struct& this_gun, other_gun_struct&
 			printf("MAIN Gun Connected\n");
 		}
 	}
-		
+	
 	//button event transitions
-	if( button == BUTTON_ORANGE_LONG || button == BUTTON_BLUE_LONG){
-		this_gun.state_duo = 0; //reset local state
+	if( button == BUTTON_RESET){
 		this_gun.initiator = false; //reset initiator
 		this_gun.state_solo = 0; //reset self state
+		this_gun.state_duo = 0; //reset local state
 	}
-	else if (button == BUTTON_ORANGE_SHORT){
-		if(this_gun.state_duo == 0 && this_gun.state_solo == 0){
-			this_gun.state_duo = 1;
-		}else if(this_gun.state_duo == 1){
-			this_gun.state_duo = 2;
-			this_gun.initiator = true; 
-		}else if(this_gun.state_duo == 2 && this_gun.initiator == true){
-			this_gun.state_duo = 3;
-		}else if(this_gun.state_duo == 4){
-			this_gun.state_duo = 5;
-		}else if(this_gun.state_duo == 5){
-			this_gun.state_duo = 4;  
-		}else if(this_gun.state_duo == -4){ //swap places
-			this_gun.state_duo = 4;
-		}else if(this_gun.state_duo == 2 && this_gun.initiator == false){  //answer an incoming call immediately and open portal on button press
-			this_gun.state_duo = 4;  
-		}else if(this_gun.state_solo > 0 && this_gun.state_solo < 4){
-			this_gun.state_solo++;
-		}else if(this_gun.state_solo == 4 || this_gun.state_solo == -3 || this_gun.state_solo == -4){
-			this_gun.state_solo = 3;
+	else if(button == BUTTON_MODE_TOGGLE){
+		
+		//only allow changes in mode 0 for now
+		if (this_gun.state_solo == 0 && this_gun.state_duo == 0){ 
+			if (this_gun.mode == MODE_DUO){
+				this_gun.mode = MODE_SOLO;
+			}else if (this_gun.mode == MODE_SOLO){
+				this_gun.mode = MODE_DUO;
+			}
+		}
+		//TODO: add code from V2: (button == BUTTON_BOTH_LONG_ORANGE){  and (button == BUTTON_BOTH_LONG_BLUE){
+	}
+	else if (button == BUTTON_PRIMARY_FIRE){
+		if (this_gun.mode == MODE_DUO){
+			//projector stuff
+			if(this_gun.state_duo == 0){
+				this_gun.mode = 1;
+			}else if(this_gun.state_duo == 1){
+				this_gun.mode = 2;
+				this_gun.initiator = true; 
+			}else if(this_gun.state_duo == 2 && this_gun.initiator == true){ //if leading the call, go through all modes
+				this_gun.mode = 3;
+			}else if(this_gun.state_duo == 2 && this_gun.initiator == false){  //answer an incoming call immediately and open portal on button press
+				this_gun.state_duo = 4;  
+			}else if(this_gun.state_duo == 4){ //open portal
+				this_gun.state_duo = 5;
+			}else if(this_gun.state_duo == 5){ //close portal
+				this_gun.state_duo = 4;  
+			}
+			//camera stuff
+			else if (this_gun.state_duo == -1){
+				this_gun.state_duo = -2;
+				this_gun.initiator = true;
+			}else if (this_gun.state_duo == -2 && this_gun.initiator == true){
+				this_gun.state_duo = -3;
+			}else if (this_gun.state_duo == -2 && this_gun.initiator == false){
+				this_gun.state_duo = -4;
+			}else if (this_gun.state_duo == -3 && this_gun.initiator == false){
+				this_gun.state_duo = -4; //connection established
+			}
+		}else if (this_gun.mode == MODE_SOLO){
+			if(this_gun.state_solo > 0 && this_gun.state_solo < 4){
+				this_gun.state_solo++;
+			}else if(this_gun.state_solo == 4 || this_gun.state_solo == -3 || this_gun.state_solo == -4){
+				this_gun.state_solo = 3;
+			}			
 		}
 	}
-	else if (button == BUTTON_BLUE_SHORT){
-		if (this_gun.state_duo ==0 && this_gun.state_solo == 0){
-			this_gun.state_duo = -1;
-		}else if (this_gun.state_duo == -1){
-			this_gun.state_duo = -2;
-			this_gun.initiator = true;
-		}else if (this_gun.state_duo == -2 && this_gun.initiator == true){
-			this_gun.state_duo = -3;
-		}else if (this_gun.state_duo == -2 && this_gun.initiator == false){
-			this_gun.state_duo = -4;
-		}else if (this_gun.state_duo == -3 && this_gun.initiator == false){
-			this_gun.state_duo = -4; //connection established
-		}else if(this_gun.state_solo < 0 && this_gun.state_solo > -4){
-			this_gun.state_solo--;
-		}else if(this_gun.state_solo == -4 || this_gun.state_solo == 3 || this_gun.state_solo == 4){
-			this_gun.state_solo = -3;
+	else if (button == BUTTON_ALT_FIRE){
+		if (this_gun.mode == MODE_DUO){
+			//quick swap alt button
+			if(this_gun.state_duo == -4){ 
+				this_gun.state_duo = 4;
+			}
+			//alt fire camera
+			else if (this_gun.state_duo ==0){
+				this_gun.state_duo = -1;
+			} 
+		}else if (this_gun.mode == MODE_SOLO){
+			if(this_gun.state_solo < 0 && this_gun.state_solo > -4){
+				this_gun.state_solo--;
+			}else if(this_gun.state_solo == -4 || this_gun.state_solo == 3 || this_gun.state_solo == 4){
+				this_gun.state_solo = -3;
+			}			
 		}
 	}
-	else if (button == BUTTON_BOTH_LONG_ORANGE){
-		if ((this_gun.state_duo == 0 && this_gun.state_solo == 0) || this_gun.state_duo == 1 || this_gun.state_duo == 2 || this_gun.state_duo == 3){
-			this_gun.state_solo = this_gun.state_duo + 1;
-			this_gun.state_duo_previous = this_gun.state_duo = 0;  //avoid transition changes
-		}else if(this_gun.state_solo == 1 ||  this_gun.state_solo == 2 || this_gun.state_solo == 3){
-			this_gun.state_solo++;
-		}else if(this_gun.state_solo == -3 || this_gun.state_solo == -4 || this_gun.state_solo == 4){
-			this_gun.state_solo = 3;
-		}			
-	}
-	else if (button == BUTTON_BOTH_LONG_BLUE){
-		if ((this_gun.state_duo == 0 && this_gun.state_solo == 0) || this_gun.state_duo == -1 || this_gun.state_duo == -2 || this_gun.state_duo == -3){
-			this_gun.state_solo = this_gun.state_duo - 1;  //do this outside of MAX macro
-			this_gun.state_solo = MAX(this_gun.state_solo,-3); //blue needs to clamp to -3 for visual consistency since we dont have a blue portal in local state -3 mode
-			this_gun.state_duo_previous = this_gun.state_duo = 0;  //avoid transition changes
-		}else if(this_gun.state_solo == -1 || this_gun.state_solo == -2 || this_gun.state_solo == -3){
-			this_gun.state_solo--;
-		}else if(this_gun.state_solo == 3 || this_gun.state_solo == 4  || this_gun.state_solo == -4){
-			this_gun.state_solo = -3;
-		}
-	}
+
 	
 	//other gun transitions
 	if (this_gun.state_solo == 0){

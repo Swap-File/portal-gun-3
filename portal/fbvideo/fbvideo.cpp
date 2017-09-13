@@ -13,6 +13,32 @@ GstElement *textoverlay;
 GstElement *inputselector;
 GstPad *inputpads[2];
 
+struct this_gun_struct {
+	
+	int mode = -1;
+	int state_duo = 0; 
+	int state_solo = 0; 
+
+	int connected = 0; 
+	
+	int effect_solo_next = -1;
+	int effect_solo_current = -1;
+
+
+	int effect_duo_next = -1;
+	int effect_duo_current = -1;
+	
+	float latency = 0.0;
+	float coretemp = 0.0;
+	
+	float  battery_level_pretty=0;
+	float  temperature_pretty=0;
+	int web_packet_counter;
+};  
+
+
+struct this_gun_struct this_gun;
+
 static gboolean bus_call (GstBus *bus, GstMessage *msg, gpointer data)
 {
 	GMainLoop *loop = (GMainLoop*)data;
@@ -48,45 +74,34 @@ static gboolean bus_call (GstBus *bus, GstMessage *msg, gpointer data)
 	return TRUE;
 }
 
-int hits = 0;
-int xoffset = 0;
-int dir = 0;
 
-int  flopper = 0;
 static gboolean idle_loop (gpointer data) {
 	
-	hits++;
-	
-	static uint32_t timer3 = 0;
-	if (millis()- timer3 > 10000){
-		if(flopper == 0 ){
-			g_object_set (inputselector, "active-pad",  inputpads[1], NULL);
-			flopper = 1;
-		}else{
-			g_object_set (inputselector, "active-pad",  inputpads[0], NULL);
-			flopper = 0;
-		}
-		timer3 = millis();		
-	}
-	
-	
+	static uint16_t fps = 0;
 	static uint32_t timer = 0;
+	fps++;
 	if (millis()- timer > 1000){
-		printf("Idle 5sec %d\n",hits);
+		printf("FDVIDEO FPS: %d\n",fps);
 		timer = millis();
-		hits = 0;
+		fps = 0;
 	}
+	
 	
 	static uint32_t timer2 = 0;
 	if (millis()- timer2 > 20){
 		
-		if (dir == 0)  xoffset++; 
-		else           xoffset--;
-		
-		if (xoffset > 50) dir=1;
-		if (xoffset <=0 ) dir=0;
-		
-		g_object_set (textoverlay, "deltax",  -xoffset, NULL);
+		FILE *webin_fp;
+	
+		webin_fp = fopen("/var/www/html/tmp/fd1.txt", "r");
+		fscanf (webin_fp, "%d %d %d %d %d %d %d %f %f %f %f %d %d\n" ,\
+		&this_gun.state_solo,&this_gun.state_duo,&this_gun.connected,\
+		&this_gun.effect_solo_next,&this_gun.effect_solo_current,\
+		&this_gun.effect_duo_next,&this_gun.effect_duo_current,\
+		&this_gun.battery_level_pretty,&this_gun.temperature_pretty,&this_gun.coretemp,\
+		&this_gun.latency,&this_gun.web_packet_counter,&this_gun.mode);
+		fclose(webin_fp);
+	
+	
 		uint32_t current_time= millis();
 		uint32_t milliseconds =  (current_time % 1000) ;
 		uint32_t seconds =  (current_time / 1000) % 60 ;
@@ -94,8 +109,17 @@ static gboolean idle_loop (gpointer data) {
 		uint32_t hours   =  ((current_time / (1000*60*60)) % 24);
 
 		char temp[100];
-		sprintf(temp,"<b>Gordon</b>  &#8646; Volts: 16.3\nTemp 90/160F\nLag: 2ms\nMode: Duo\nUptime\n%.2d:%.2d:%.2d.%.3d",hours,minutes ,seconds,milliseconds);
+		sprintf(temp,"<b>Gordon</b>     &#8646;\nVolts:  16.3\nTemp 90/160F\nLag:     2ms\nMode:    Duo\nUptime\n%.2d:%.2d:%.2d.%.3d",hours,minutes ,seconds,milliseconds);
 		g_object_set (textoverlay, "text",  temp, NULL);
+		
+		
+				if(this_gun.mode == 1 ){
+			g_object_set (inputselector, "active-pad",  inputpads[1], NULL);
+		}else{
+			g_object_set (inputselector, "active-pad",  inputpads[0], NULL);
+		}
+
+		
 		timer2 = millis();
 	}
 	
@@ -104,6 +128,7 @@ static gboolean idle_loop (gpointer data) {
 }
 
 int main(int argc, char *argv[]) {
+		
 	
 	const char *arg1_gst[]  = {"gstvideo"};
 	const char *arg2_gst[]  = {"--gst-disable-registry-update"};
@@ -118,7 +143,7 @@ int main(int argc, char *argv[]) {
 	GstPipeline *pipeline=GST_PIPELINE (gst_parse_launch((char *)"videotestsrc pattern=smpte ! video/x-raw,width=640,height=480,framerate=10/1 ! queue ! videorate ! "
 	"video/x-raw,framrate=10/1 ! videoscale ! video/x-raw,width=320,height=240 ! videoin. "
 	"videotestsrc pattern=snow ! video/x-raw,width=320,height=240,framerate=10/1 ! queue ! videoin. "
-	"input-selector name=videoin ! textoverlay shaded-background=true valignment=center line-alignment=center halignment=center font-desc=Sans,40 name=textinput vertical-render=true "
+	"input-selector name=videoin ! textoverlay vertical-render=true  shaded-background=true valignment=center line-alignment=center halignment=center font-desc=\"DejaVu Sans Mono,40\" name=textinput "
 	"! videoflip method=2 ! videoconvert ! fbdevsink device=/dev/fb1", NULL));
 	
 
@@ -138,7 +163,7 @@ int main(int argc, char *argv[]) {
 	gpointer data = NULL;
 	gst_element_set_state (GST_ELEMENT (pipeline), GST_STATE_PLAYING);	
 
-	g_timeout_add (20,idle_loop ,data);
+	g_timeout_add (25,idle_loop ,data);
 	g_main_loop_run (loop); //let gstreamer's GLib event loop take over
 	
 	

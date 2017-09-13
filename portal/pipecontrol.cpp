@@ -143,9 +143,12 @@ void aplay(const char *filename){
 }
 
 void web_output(const this_gun_struct& this_gun ){
+	
 	FILE *webout_fp;
+	
+	//send full playlist for editing
 	webout_fp = fopen("/var/www/html/tmp/temp.txt", "w");
-	fprintf(webout_fp, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %.2f %.2f %.2f %.2f %d\n" ,\
+	fprintf(webout_fp, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %.2f %.2f %.2f %.2f %d %d\n" ,\
 	this_gun.state_solo,this_gun.state_duo,this_gun.connected,this_gun.ir_pwm,\
 	this_gun.playlist_solo[0],this_gun.playlist_solo[1],this_gun.playlist_solo[2],this_gun.playlist_solo[3],\
 	this_gun.playlist_solo[4],this_gun.playlist_solo[5],this_gun.playlist_solo[6],this_gun.playlist_solo[7],\
@@ -154,9 +157,22 @@ void web_output(const this_gun_struct& this_gun ){
 	this_gun.playlist_duo[4],this_gun.playlist_duo[5],this_gun.playlist_duo[6],this_gun.playlist_duo[7],\
 	this_gun.playlist_duo[8],this_gun.playlist_duo[9],this_gun.effect_duo,\
 	this_gun.battery_level_pretty,this_gun.temperature_pretty,this_gun.coretemp,\
-	this_gun.latency,web_packet_counter++);
+	this_gun.latency,web_packet_counter,this_gun.mode);
 	fclose(webout_fp);
 	rename("/var/www/html/tmp/temp.txt","/var/www/html/tmp/portal.txt");
+	
+	//dont send full playlist, only active and pending effect
+	webout_fp = fopen("/var/www/html/tmp/temp.txt", "w");
+	fprintf(webout_fp, "%d %d %d %d %d %d %d %.2f %.2f %.2f %.2f %d %d\n" ,\
+	this_gun.state_solo,this_gun.state_duo,this_gun.connected,\
+	this_gun.playlist_solo[this_gun.playlist_solo_index],this_gun.effect_solo,\
+	this_gun.playlist_duo[this_gun.playlist_duo_index],this_gun.effect_duo,\
+	this_gun.battery_level_pretty,this_gun.temperature_pretty,this_gun.coretemp,\
+	this_gun.latency,web_packet_counter,this_gun.mode);
+	fclose(webout_fp);
+	rename("/var/www/html/tmp/temp.txt","/var/www/html/tmp/fd1.txt");
+	
+	web_packet_counter++;
 }
 
 int read_web_pipe(this_gun_struct& this_gun){
@@ -175,11 +191,10 @@ int read_web_pipe(this_gun_struct& this_gun){
 			//button stuff
 			if (tv[0] == 1 && results == 2) {
 				switch (tv[1]){
-				case WEB_ORANGE_WIFI:	web_button = BUTTON_ORANGE_SHORT;  		break;
-				case WEB_BLUE_WIFI:		web_button = BUTTON_BLUE_SHORT;    		break;
-				case WEB_BLUE_SELF:		web_button = BUTTON_BOTH_LONG_BLUE; 	break; 
-				case WEB_ORANGE_SELF: 	web_button = BUTTON_BOTH_LONG_ORANGE; 	break; 
-				case WEB_CLOSE: 		web_button = BUTTON_BLUE_LONG; 			break; 
+				case WEB_PRIMARY_FIRE:	web_button = BUTTON_PRIMARY_FIRE;  	break;
+				case WEB_ALT_FIRE:		web_button = BUTTON_ALT_FIRE;    	break;
+				case WEB_MODE_TOGGLE:	web_button = BUTTON_MODE_TOGGLE; 	break; 
+				case WEB_RESET:     	web_button = BUTTON_RESET; 			break; 
 				default: 				web_button = BUTTON_NONE;
 				}
 			}
