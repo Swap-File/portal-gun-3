@@ -1,7 +1,6 @@
 #include "portal.h"
 #include "i2cread.h"
 #include "ledcontrol.h"
-#include "inputoutput.h"
 #include "udpcontrol.h"
 #include "pipecontrol.h"
 #include "statemachine.h"
@@ -46,7 +45,7 @@ int main(void){
 	int changes = 0;
 	
 	//setup libaries
-	inputoutput_setup();
+	wiringPiSetup () ;
 	ledcontrol_setup();
 	i2creader_setup();	
 	//int ip = udpcontrol_setup();
@@ -77,7 +76,8 @@ int main(void){
 		
 		int button_event = BUTTON_NONE;
 		//read states from buttons
-		//button_event = arduino_update(this_gun);
+		
+		button_event = io_update(this_gun);
 		
 		//if no event, read from the web
 		if (button_event == BUTTON_NONE) button_event = read_web_pipe(this_gun);
@@ -151,7 +151,7 @@ int main(void){
 			//printf(" %d %d %d %f\n",this_gun.accel[0],this_gun.accel[1],this_gun.accel[2] ,this_gun.battery_level_pretty);
 		}
 		
-		
+
 		//send data to other gun
 		static uint32_t time_udp_send = 0;
 		if (this_gun.clock - time_udp_send > 100){

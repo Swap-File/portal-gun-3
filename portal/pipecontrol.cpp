@@ -15,6 +15,8 @@
 #include <sys/time.h>  
 #include <wiringPi.h>
 
+#define BUCKET_SIZE 2
+
 uint32_t ping_time = 0;
 uint8_t web_packet_counter = 0;
 
@@ -40,6 +42,7 @@ void pipecontrol_cleanup(void){
 	system("pkill mjpeg");
 	system("pkill fbvideo");
 }
+
 
 void pipecontrol_setup(){
 
@@ -79,6 +82,23 @@ void pipecontrol_setup(){
 	//empty named pipe
 	char buffer[100]; 
 	while(read(web_in, buffer, sizeof(buffer)-1));
+	
+	
+		//pinMode (PIN_FAN_PWM, PWM_OUTPUT );  this crashes the os? 
+	//pinMode (PIN_IR_PWM, PWM_OUTPUT );
+	system("gpio mode 23 pwm");
+	system("gpio mode 26 pwm");
+	
+	
+	pinMode (PIN_PRIMARY, INPUT);
+	pinMode (PIN_ALT, INPUT);
+	pinMode (PIN_MODE, INPUT);
+	pinMode (PIN_RESET, INPUT);
+	
+	pullUpDnControl  (PIN_PRIMARY, PUD_UP);
+	pullUpDnControl  (PIN_ALT, PUD_UP);
+	pullUpDnControl  (PIN_MODE, PUD_UP);
+	pullUpDnControl  (PIN_RESET, PUD_UP);
 
 }
 /*
@@ -291,6 +311,55 @@ void update_temp(float * temp){
 	return;
 }
 
+
+int io_update(const this_gun_struct& this_gun){
+	
+	static uint32_t pwm_cooldown = 0;
+	static int fanspeed_last = 0;
+	static int ir_brightness_last = 0;
+	
+	//writing pwm directly from this thread causes crashes, seems like a bug in wiring pi?
+	
+	//use a cooldown when changing to limit how often gpio can run, only launch on change
+	if ((fanspeed_last != this_gun.fan_pwm) && (this_gun.clock - pwm_cooldown > 100)){
+		fprintf(bash_fp, "gpio pwm 23 %d &\n",this_gun.fan_pwm);
+		fflush(bash_fp);
+		fanspeed_last = this_gun.fan_pwm;
+		pwm_cooldown = this_gun.clock;
+	}
+	
+	//use a cooldown when changing to limit how often gpio can run, only launch on change
+	if ((ir_brightness_last != this_gun.ir_pwm) && (this_gun.clock - pwm_cooldown > 100)){
+		fprintf(bash_fp, "gpio pwm 26 %d &\n",this_gun.ir_pwm);
+		ir_brightness_last = this_gun.ir_pwm;
+		fflush(bash_fp);
+		pwm_cooldown = this_gun.clock;
+	}
+		
+	static int primary_bucket = 0;
+	static int alt_bucket = 0;
+	static int mode_bucket = 0;
+	static int reset_bucket = 0;
+
+
+	//basic bucket debounce
+	if(digitalRead (PIN_PRIMARY)==0) primary_bucket++;
+	else primary_bucket = 0;
+	if(digitalRead (PIN_ALT)==0) alt_bucket++;
+	else alt_bucket = 0;
+	if(digitalRead (PIN_MODE)==0) mode_bucket++;
+	else mode_bucket =0;
+	if(digitalRead (PIN_RESET)==0) reset_bucket++;
+	else reset_bucket = 0;
+	
+	if (primary_bucket > BUCKET_SIZE)	return BUTTON_PRIMARY_FIRE;
+	if (alt_bucket > BUCKET_SIZE)		return BUTTON_ALT_FIRE;
+	if (mode_bucket > BUCKET_SIZE)		return BUTTON_MODE_TOGGLE;
+	if (reset_bucket > BUCKET_SIZE)		return BUTTON_RESET;
+	return BUTTON_NONE;
+	
+	
+}
 void audio_effects(const this_gun_struct& this_gun){
 	
 	//LOCAL STATES

@@ -12,9 +12,19 @@
 #define WEB_MODE_TOGGLE 102
 #define WEB_RESET 103
 
+#define PIN_FAN_PWM  26 //pwm0
+#define PIN_IR_PWM   23 //pwm1
+
+#define PIN_PRIMARY 2
+#define PIN_ALT     3
+#define PIN_MODE    4 
+#define PIN_RESET   5
+
+
 void pipecontrol_setup(void);
 void pipecontrol_cleanup(void);
 void aplay(const char *filename);
+int io_update(const this_gun_struct& this_gun);
 void web_output(const this_gun_struct& this_gun); //checked
 //void ahrs_command(int x, int y, int z, int number);
 //void gst_command(int number);
