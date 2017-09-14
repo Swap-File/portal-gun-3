@@ -83,12 +83,11 @@ void pipecontrol_setup(){
 	char buffer[100]; 
 	while(read(web_in, buffer, sizeof(buffer)-1));
 	
-	
-		//pinMode (PIN_FAN_PWM, PWM_OUTPUT );  this crashes the os? 
+	//this crashes the os?  use PWM via gpio
+	//pinMode (PIN_FAN_PWM, PWM_OUTPUT );  
 	//pinMode (PIN_IR_PWM, PWM_OUTPUT );
 	system("gpio mode 23 pwm");
 	system("gpio mode 26 pwm");
-	
 	
 	pinMode (PIN_PRIMARY, INPUT);
 	pinMode (PIN_ALT, INPUT);
@@ -99,7 +98,6 @@ void pipecontrol_setup(){
 	pullUpDnControl  (PIN_ALT, PUD_UP);
 	pullUpDnControl  (PIN_MODE, PUD_UP);
 	pullUpDnControl  (PIN_RESET, PUD_UP);
-
 }
 /*
 void ahrs_command(int x, int y, int z, int number){
@@ -311,7 +309,6 @@ void update_temp(float * temp){
 	return;
 }
 
-
 int io_update(const this_gun_struct& this_gun){
 	
 	static uint32_t pwm_cooldown = 0;
@@ -341,24 +338,21 @@ int io_update(const this_gun_struct& this_gun){
 	static int mode_bucket = 0;
 	static int reset_bucket = 0;
 
-
 	//basic bucket debounce
-	if(digitalRead (PIN_PRIMARY)==0) primary_bucket++;
+	if(digitalRead (PIN_PRIMARY) == 0) primary_bucket++;
 	else primary_bucket = 0;
-	if(digitalRead (PIN_ALT)==0) alt_bucket++;
+	if(digitalRead (PIN_ALT) == 0)     alt_bucket++;
 	else alt_bucket = 0;
-	if(digitalRead (PIN_MODE)==0) mode_bucket++;
-	else mode_bucket =0;
-	if(digitalRead (PIN_RESET)==0) reset_bucket++;
+	if(digitalRead (PIN_MODE) == 0)    mode_bucket++;
+	else mode_bucket = 0;
+	if(digitalRead (PIN_RESET) == 0)   reset_bucket++;
 	else reset_bucket = 0;
 	
 	if (primary_bucket > BUCKET_SIZE)	return BUTTON_PRIMARY_FIRE;
 	if (alt_bucket > BUCKET_SIZE)		return BUTTON_ALT_FIRE;
 	if (mode_bucket > BUCKET_SIZE)		return BUTTON_MODE_TOGGLE;
 	if (reset_bucket > BUCKET_SIZE)		return BUTTON_RESET;
-	return BUTTON_NONE;
-	
-	
+	return BUTTON_NONE;	
 }
 void audio_effects(const this_gun_struct& this_gun){
 	

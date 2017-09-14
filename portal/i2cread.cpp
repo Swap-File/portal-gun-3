@@ -81,7 +81,6 @@ bool analog_read_ready(){
 	return false;
 }
 
-
 void i2creader_setup(void){
 	
 	//accelerometer start
@@ -99,7 +98,6 @@ void i2creader_setup(void){
 	// FS = 10 (8 g full scale)
 	// HR = 1 (high resolution enable)
 	wiringPiI2CWriteReg8(accel_fd,CTRL_REG4_A, 0b00101000);
-
 }
 
 void i2creader_update(this_gun_struct& this_gun){
@@ -117,8 +115,6 @@ void i2creader_update(this_gun_struct& this_gun){
 	this_gun.accel[0] = i2c_accel[0];
 	this_gun.accel[1] = i2c_accel[1];
 	this_gun.accel[2] = i2c_accel[2];
-	
-
 	
 	this_gun.battery_level_pretty = i2c_adc[0];
 	this_gun.temperature_pretty = i2c_adc[1];

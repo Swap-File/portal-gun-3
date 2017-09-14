@@ -1,7 +1,6 @@
 #ifndef _I2CREAD_H
 #define _I2CREAD_H
 
-
 void i2creader_update(this_gun_struct& this_gun);
 void i2creader_setup(void);
 

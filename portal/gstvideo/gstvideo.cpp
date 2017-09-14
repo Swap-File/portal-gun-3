@@ -537,7 +537,7 @@ int main(int argc, char *argv[]){
 	load_pipeline(GST_VIDEOTESTSRC ,(char *)"videotestsrc ! video/x-raw,width=640,height=480,framerate=(fraction)30/1 ! queue ! glupload ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true");
 	load_pipeline(GST_VIDEOTESTSRC_CUBED ,(char *)"videotestsrc ! video/x-raw,width=640,height=480,framerate=(fraction)30/1 ! queue ! glupload ! glfiltercube ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true");
 
-	//camera launch
+	//camera launch 192.168.1.22 gordon    192.168.1.23 chell
 	if(getenv("GORDON"))    {load_pipeline(GST_RPICAMSRC ,(char *)"rpicamsrc preview=0 ! image/jpeg,width=640,height=480,framerate=30/1 ! "
 	"queue max-size-time=50000000 leaky=upstream ! jpegparse ! tee name=t "
 	"t. ! queue ! rtpjpegpay ! udpsink host=192.168.1.169 port=9000 sync=false "
