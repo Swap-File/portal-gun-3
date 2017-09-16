@@ -83,11 +83,8 @@ void pipecontrol_setup(){
 	char buffer[100]; 
 	while(read(web_in, buffer, sizeof(buffer)-1));
 	
-	//this crashes the os?  use PWM via gpio
-	//pinMode (PIN_FAN_PWM, PWM_OUTPUT );  
-	//pinMode (PIN_IR_PWM, PWM_OUTPUT );
-	system("gpio mode 23 pwm");
-	system("gpio mode 26 pwm");
+	pinMode (PIN_FAN_PWM, PWM_OUTPUT );  
+	pinMode (PIN_IR_PWM, PWM_OUTPUT );
 	
 	pinMode (PIN_PRIMARY, INPUT);
 	pinMode (PIN_ALT, INPUT);
@@ -311,27 +308,8 @@ void update_temp(float * temp){
 
 int io_update(const this_gun_struct& this_gun){
 	
-	static uint32_t pwm_cooldown = 0;
-	static int fanspeed_last = 0;
-	static int ir_brightness_last = 0;
-	
-	//writing pwm directly from this thread causes crashes, seems like a bug in wiring pi?
-	
-	//use a cooldown when changing to limit how often gpio can run, only launch on change
-	if ((fanspeed_last != this_gun.fan_pwm) && (this_gun.clock - pwm_cooldown > 100)){
-		fprintf(bash_fp, "gpio pwm 23 %d &\n",this_gun.fan_pwm);
-		fflush(bash_fp);
-		fanspeed_last = this_gun.fan_pwm;
-		pwm_cooldown = this_gun.clock;
-	}
-	
-	//use a cooldown when changing to limit how often gpio can run, only launch on change
-	if ((ir_brightness_last != this_gun.ir_pwm) && (this_gun.clock - pwm_cooldown > 100)){
-		fprintf(bash_fp, "gpio pwm 26 %d &\n",this_gun.ir_pwm);
-		ir_brightness_last = this_gun.ir_pwm;
-		fflush(bash_fp);
-		pwm_cooldown = this_gun.clock;
-	}
+	pwmWrite (PIN_FAN_PWM,this_gun.fan_pwm);
+	pwmWrite (PIN_IR_PWM,this_gun.ir_pwm);
 		
 	static int primary_bucket = 0;
 	static int alt_bucket = 0;

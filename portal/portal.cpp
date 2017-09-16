@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#include <unistd.h>
+#include <sys/types.h>
 #include <wiringPi.h>
 
 volatile bool video_done = false;
@@ -26,6 +28,12 @@ void gstvideo_handler(int dummy) {
 }
 
 int main(void){
+	
+	if (getuid()) {
+		printf("Run as root!\n");
+		exit(1);
+	}
+
 	pipecontrol_cleanup();
 	
 	struct this_gun_struct this_gun;
