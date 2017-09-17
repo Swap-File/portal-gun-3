@@ -55,10 +55,11 @@ int main(void){
 	int changes = 0;
 	
 	//setup libaries
+	web_output(this_gun);
 	wiringPiSetup () ;
 	ledcontrol_setup();
 	i2creader_setup();	
-	//udpcontrol_setup();
+	udpcontrol_setup();
 	pipecontrol_setup();
 	
 	bool freq_50hz = true; //toggles every other cycle, cuts 100hz to 50hz
@@ -78,6 +79,9 @@ int main(void){
 		}
 		this_gun.clock = millis();  //stop time for duration of frame
 		freq_50hz = !freq_50hz; 
+		this_gun.state_duo_previous = this_gun.state_duo;
+		this_gun.state_solo_previous = this_gun.state_solo;
+		other_gun.state_previous = other_gun.state;
 		
 		//program code starts here
 		update_temp(&this_gun.coretemp);
@@ -86,11 +90,11 @@ int main(void){
 		//read states from buttons
 		int button_event = BUTTON_NONE;	
 		button_event = io_update(this_gun);
-		
+
 		//if no event, read from the web
 		if (button_event == BUTTON_NONE) button_event = read_web_pipe(this_gun);
 		//read other gun's data, only if no button events are happening this cycle
-		
+
 		//if still no event, read button from the other gun for processing
 		while (button_event == BUTTON_NONE){
 			int result = udp_receive_state(&other_gun.state,&other_gun.clock);
@@ -98,12 +102,16 @@ int main(void){
 			else other_gun.last_seen = this_gun.clock;  //update time data was seen
 			if (millis() - this_gun.clock > 5) break; //flood protect
 		}
-		
+
 		if (video_done){
 			if (this_gun.state_solo == 4) this_gun.state_solo = 3;
 			else if (this_gun.state_solo == -4) this_gun.state_solo = -3;
 			video_done = false;
 		}
+						
+		//process state changes
+		local_state_engine(button_event,this_gun,other_gun);
+		if (button_event != BUTTON_NONE) changes++;
 		
 		//gstreamer state stuff, blank it if shared state and private state are 0
 		int gst_state = GST_BLANK;
@@ -113,10 +121,6 @@ int main(void){
 		else if(this_gun.state_duo >= 1) gst_state = this_gun.effect_duo;		
 		//project private preload
 		else if(this_gun.state_solo != 0) gst_state = this_gun.effect_solo;	
-				
-		//process state changes
-		local_state_engine(button_event,this_gun,other_gun);
-		if (button_event != BUTTON_NONE) changes++;
 		
 		//ahrs effects
 		int ahrs_state = AHRS_CLOSED; 
@@ -143,7 +147,6 @@ int main(void){
 		}
 		else{
 			i2creader_update(this_gun);
-			web_output(this_gun);
 		}
 		
 		//send data to other gun
@@ -151,6 +154,7 @@ int main(void){
 		if (this_gun.clock - time_udp_send > 100){
 			udp_send_state(this_gun.state_duo,this_gun.clock);
 			time_udp_send = this_gun.clock;
+			web_output(this_gun);
 		}
 		
 		//cycle end code - fps counter and stats

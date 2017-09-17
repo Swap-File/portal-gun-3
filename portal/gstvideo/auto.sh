@@ -6,5 +6,5 @@ xset s noblank # don't blank the video device
 xset s noexpose
 xset -dpms
 PID="$(pidof portal)"
-/home/pi/portal/gstvideo/gstvideo $PID
+~/portal/gstvideo/gstvideo $PID
 

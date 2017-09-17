@@ -350,7 +350,11 @@ void start_pipeline(){
 			}
 		}else{	
 			//null everything else		
+			if(video_mode_current== GST_RPICAMSRC ){
+			gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_PAUSED);	
+			}else{
 			gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_NULL);
+			}
 		}
 		
 		//if its a video stream, unload it completely
@@ -540,13 +544,13 @@ int main(int argc, char *argv[]){
 	//camera launch 192.168.1.22 gordon    192.168.1.23 chell
 	if(getenv("GORDON"))    {load_pipeline(GST_RPICAMSRC ,(char *)"rpicamsrc preview=0 ! image/jpeg,width=640,height=480,framerate=30/1 ! "
 	"queue max-size-time=50000000 leaky=upstream ! jpegparse ! tee name=t "
-	"t. ! queue ! rtpjpegpay ! udpsink host=192.168.1.169 port=9000 sync=false "
+	"t. ! queue ! rtpjpegpay ! udpsink host=192.168.1.23 port=9000 sync=false "
 	"t. ! queue ! rtpjpegpay ! udpsink host=127.0.0.1     port=8999 sync=false "
 	"t. ! queue ! multifilesink location=/var/www/html/tmp/snapshot.jpg");
 	}else if(getenv("CHELL")){
 	load_pipeline(GST_RPICAMSRC ,(char *)"rpicamsrc preview=0 ! image/jpeg,width=640,height=480,framerate=30/1 ! "
 	"queue max-size-time=50000000 leaky=upstream ! jpegparse ! tee name=t "
-	"t. ! queue ! rtpjpegpay ! udpsink host=192.168.1.169 port=9000 sync=false "
+	"t. ! queue ! rtpjpegpay ! udpsink host=192.168.1.22 port=9000 sync=false "
 	"t. ! queue ! rtpjpegpay ! udpsink host=127.0.0.1     port=8999 sync=false "
 	"t. ! queue ! multifilesink location=/var/www/html/tmp/snapshot.jpg");
 	}

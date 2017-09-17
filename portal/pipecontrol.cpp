@@ -44,13 +44,16 @@ void pipecontrol_cleanup(void){
 
 
 void pipecontrol_setup(){
+	
 	piHiPri(90);
     system("/home/pi/portal/fbvideo/fbvideo &");
     delay(2000);
 	system("/home/pi/portal/gstvideo/start.sh &");
-	delay(5000);
+	delay(8000);
 	
 	gstvideo_fp = fopen("/home/pi/GSTVIDEO_IN_PIPE", "w");
+	int gstvideo_fp_int = fileno(gstvideo_fp);
+	fcntl(gstvideo_fp_int, F_SETFL, O_NONBLOCK);
 	
 	bash_fp = popen("bash", "w");
 	fcntl(fileno(bash_fp), F_SETFL, fcntl(fileno(bash_fp), F_GETFL, 0) | O_NONBLOCK);
