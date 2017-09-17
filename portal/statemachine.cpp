@@ -65,9 +65,11 @@ void local_state_engine(int button, this_gun_struct& this_gun, other_gun_struct&
 				this_gun.state_duo = -4; //connection established
 			}
 		}else if (this_gun.mode == MODE_SOLO){
-			if(this_gun.state_solo > 0 && this_gun.state_solo < 4){
+			if(this_gun.state_solo >= 0 && this_gun.state_solo < 4){
 				this_gun.state_solo++;
-			}else if(this_gun.state_solo == 4 || this_gun.state_solo == -3 || this_gun.state_solo == -4){
+			}else if(this_gun.state_solo < 0 && this_gun.state_solo > -4){
+				this_gun.state_solo--;
+			}else if(this_gun.state_solo == 4){
 				this_gun.state_solo = 3;
 			}			
 		}
@@ -82,12 +84,10 @@ void local_state_engine(int button, this_gun_struct& this_gun, other_gun_struct&
 			else if (this_gun.state_duo ==0){
 				this_gun.state_duo = -1;
 			} 
-		}else if (this_gun.mode == MODE_SOLO){
-			if(this_gun.state_solo < 0 && this_gun.state_solo > -4){
-				this_gun.state_solo--;
-			}else if(this_gun.state_solo == -4 || this_gun.state_solo == 3 || this_gun.state_solo == 4){
-				this_gun.state_solo = -3;
-			}			
+		}else if (this_gun.mode == MODE_SOLO){ //redo this!
+			if(this_gun.state_solo == 0){
+				this_gun.state_solo = -1;
+			}		
 		}
 	}
 
