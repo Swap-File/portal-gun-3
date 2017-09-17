@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/time.h>
+#include <time.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <wiringPi.h>
@@ -14,6 +14,24 @@ GstElement *inputselector;
 GstPad *inputpads[2];
 
 char user_name[10];
+
+unsigned int millis (void){
+  struct  timespec ts ;
+
+  clock_gettime (CLOCK_MONOTONIC_RAW, &ts) ;
+  uint64_t now  = (uint64_t)ts.tv_sec * (uint64_t)1000 + (uint64_t)(ts.tv_nsec / 1000000L) ;
+
+  return (uint32_t)now ;
+}
+
+unsigned int micros (void){
+  struct  timespec ts ;
+
+  clock_gettime (CLOCK_MONOTONIC_RAW, &ts) ;
+  uint64_t now  = (uint64_t)ts.tv_sec * (uint64_t)1000000 + (uint64_t)(ts.tv_nsec / 1000) ;
+
+  return (uint32_t)now;
+}
 
 struct this_gun_struct {
 	
@@ -150,8 +168,8 @@ int main(int argc, char *argv[]) {
 
 	GMainLoop *loop = g_main_loop_new (NULL, FALSE);
 
-	GstPipeline *pipeline = GST_PIPELINE (gst_parse_launch((char *)"videotestsrc pattern=black ! video/x-raw,width=320,height=240,framerate=10/1 ! queue ! videoin. "
-	"videotestsrc ! video/x-raw,width=640,height=480,framerate=10/1 ! queue ! videorate ! "
+	GstPipeline *pipeline = GST_PIPELINE (gst_parse_launch((char *)"videotestsrc pattern=black ! video/x-raw,width=320,height=240,format=RGB,framerate=10/1 ! queue ! videoin. "
+	"videotestsrc ! video/x-raw,width=640,height=480,format=RGB,framerate=10/1 ! queue ! videorate ! "
 	"video/x-raw,framrate=10/1 ! videoscale ! video/x-raw,width=320,height=240 ! queue ! videoin. "
 	"input-selector name=videoin ! textoverlay vertical-render=true  shaded-background=true valignment=center line-alignment=center halignment=center font-desc=\"DejaVu Sans Mono,48\" name=textinput "
 	"! videoflip method=2 ! videoconvert ! fbdevsink device=/dev/fb1", NULL));
