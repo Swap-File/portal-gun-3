@@ -20,16 +20,12 @@
 #define PIN_MODE    4 
 #define PIN_RESET   5
 
-
 void pipecontrol_setup(void);
 void pipecontrol_cleanup(void);
 void aplay(const char *filename);
 int io_update(const this_gun_struct& this_gun);
 void web_output(const this_gun_struct& this_gun); //checked
-//void ahrs_command(int x, int y, int z, int number);
-//void gst_command(int number);
-//void launch_gst_control(void);
-//void launch_ahrs_control(void);
+void gstvideo_command(int portal_state, int video_state,int x, int y, int z);
 void audio_effects(const this_gun_struct& this_gun);
 int read_web_pipe(this_gun_struct& this_gun);
 void update_ping(float * ping);

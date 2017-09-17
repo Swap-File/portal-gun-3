@@ -304,26 +304,26 @@ void model_board_init(void)
 	//initial fill to snap back
 	for (int i = 0; i < 360; i ++)	torus_offset[i] = 3;
 	
-	orange_n = png_texture_load( "assets/orange_n.png", NULL, NULL);
+	orange_n = png_texture_load( "/home/pi/portal/gstvideo/assets/orange_n.png", NULL, NULL);
 	//override default of clamp
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	
-	blue_n = png_texture_load( "assets/blue_n.png", NULL, NULL);
+	blue_n = png_texture_load( "/home/pi/portal/gstvideo/assets/blue_n.png", NULL, NULL);
 	//override default of clamp
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	
-	orange_0 = png_texture_load( "assets/orange_0.png", NULL, NULL);
-	orange_1 = png_texture_load( "assets/orange_1.png", NULL, NULL);
+	orange_0 = png_texture_load( "/home/pi/portal/gstvideo/assets/orange_0.png", NULL, NULL);
+	orange_1 = png_texture_load( "/home/pi/portal/gstvideo/assets/orange_1.png", NULL, NULL);
 
-	blue_0 = png_texture_load( "assets/blue_0.png", NULL, NULL);
-	blue_1 = png_texture_load( "assets/blue_1.png", NULL, NULL);
+	blue_0 = png_texture_load( "/home/pi/portal/gstvideo/assets/blue_0.png", NULL, NULL);
+	blue_1 = png_texture_load( "/home/pi/portal/gstvideo/assets/blue_1.png", NULL, NULL);
 	
-	texture_orange = png_texture_load( "assets/orange_portal.png", NULL, NULL);
-	texture_blue   = png_texture_load( "assets/blue_portal.png",   NULL, NULL);
+	texture_orange = png_texture_load( "/home/pi/portal/gstvideo/assets/orange_portal.png", NULL, NULL);
+	texture_blue   = png_texture_load( "/home/pi/portal/gstvideo/assets/blue_portal.png",   NULL, NULL);
 	
-	circle64 = png_texture_load( "assets/circle64.png", NULL, NULL);
+	circle64 = png_texture_load( "/home/pi/portal/gstvideo/assets/circle64.png", NULL, NULL);
 	
 	if (orange_n == 0 || blue_n == 0 || texture_orange == 0 || texture_blue == 0 || orange_0 == 0 || orange_1 == 0 || blue_0 == 0 || blue_1 == 0 || circle64 == 0)
 	{

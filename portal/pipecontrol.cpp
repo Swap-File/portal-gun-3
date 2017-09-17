@@ -26,8 +26,7 @@ int gstreamer_crashes = 0;
 int ahrs_crashes = 0;
 
 FILE *bash_fp;
-FILE *ahrs_fp;
-FILE *gst_fp;
+FILE *gstvideo_fp;
 FILE *ping_fp;
 
 uint8_t temp_index = 0;
@@ -45,14 +44,19 @@ void pipecontrol_cleanup(void){
 
 
 void pipecontrol_setup(){
-
-
+	piHiPri(90);
+    system("/home/pi/portal/fbvideo/fbvideo &");
+    delay(2000);
+	system("/home/pi/portal/gstvideo/start.sh &");
+	delay(5000);
+	
+	gstvideo_fp = fopen("/home/pi/GSTVIDEO_IN_PIPE", "w");
+	
 	bash_fp = popen("bash", "w");
 	fcntl(fileno(bash_fp), F_SETFL, fcntl(fileno(bash_fp), F_GETFL, 0) | O_NONBLOCK);
 
-	//launch_ahrs_control();
-	//launch_gst_control();
-
+  
+ 
 	mkfifo ("/home/pi/FIFO_PIPE", 0777 );
 	
 	if ((web_in = open ("/home/pi/FIFO_PIPE",  ( O_RDONLY | O_NONBLOCK))) < 0) {
@@ -96,60 +100,14 @@ void pipecontrol_setup(){
 	pullUpDnControl  (PIN_MODE, PUD_UP);
 	pullUpDnControl  (PIN_RESET, PUD_UP);
 }
-/*
-void ahrs_command(int x, int y, int z, int number){
-	errno = 0;
-	int completed = 0;
-	while (completed == 0){
-		fprintf(ahrs_fp, "%d %d %d\n",number,x,y);
-		fflush(ahrs_fp);
-		if (errno == EPIPE) {
-			printf("BROKEN PIPE TO AHRS_CONTROL!\n");
-			fclose(ahrs_fp);
-			launch_ahrs_control();
-			errno = 0;
-			ahrs_crashes++;
-		}else{
-			completed = 1;
-		}
+
+void gstvideo_command(int portal_state, int video_state,int x, int y, int z){
+	fprintf(gstvideo_fp, "%d %d %d %d %d\n",portal_state,video_state,x,y,z);
+	fflush(gstvideo_fp);
+	if (errno == EPIPE) {
+		printf("BROKEN PIPE TO gstvideo_command!\n");
 	}
 }		
-
-void launch_ahrs_control(void){
-	printf("AHRS_CONTROL: SPAWNING PROCESS\n");
-	ahrs_fp = popen("/home/pi/portal/ahrs-visualizer/ahrs-visualizer", "w");
-	fcntl(fileno(ahrs_fp), F_SETFL, fcntl(fileno(ahrs_fp), F_GETFL, 0) | O_NONBLOCK);
-	printf("AHRS_CONTROL: READY\n");
-}
-
-void gst_command(int number){
-	errno = 0;
-	int completed = 0;
-	while (completed == 0){
-		fprintf(gst_fp, "%d\n",number);
-		fflush(gst_fp);
-		if (errno == EPIPE) {
-			printf("BROKEN PIPE %d TO GST_CONTROL!\n",gstreamer_crashes);
-			fclose(gst_fp);
-			launch_gst_control();
-			errno = 0;
-			gstreamer_crashes++;
-		}else{
-			completed = 1;
-		}
-	}
-}
-
-void launch_gst_control(void){
-	printf("GST_CONTROL : SPAWNING PROCESS\n");
-	if (ip == 22) gst_fp = popen("/home/pi/portal/gstvideo/gstvideo 22", "w");
-	else if (ip == 23) gst_fp = popen("/home/pi/portal/gstvideo/gstvideo 23", "w");
-	fcntl(fileno(gst_fp), F_SETFL, fcntl(fileno(gst_fp), F_GETFL, 0) | O_NONBLOCK);
-	fprintf(bash_fp, "sudo renice -n -20 $(pidof gstvideo)\n");
-	fflush(bash_fp);
-	printf("GST_CONTROL : READY\n");
-}
-*/
 
 void aplay(const char *filename){
 	fprintf(bash_fp, "aplay %s &\n",filename);

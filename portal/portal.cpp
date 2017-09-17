@@ -135,6 +135,7 @@ int main(void){
 		}
 
 		//OUTPUT TO gstvideo (combo video and 3d data)
+		gstvideo_command(ahrs_state,gst_state,0,0,0);
 
 		//switch off updating the leds or i2c every other cycle, each takes about 1ms
 		if(freq_50hz){ 
@@ -142,6 +143,7 @@ int main(void){
 		}
 		else{
 			i2creader_update(this_gun);
+			web_output(this_gun);
 		}
 		
 		//send data to other gun
@@ -149,7 +151,6 @@ int main(void){
 		if (this_gun.clock - time_udp_send > 100){
 			udp_send_state(this_gun.state_duo,this_gun.clock);
 			time_udp_send = this_gun.clock;
-			web_output(this_gun);
 		}
 		
 		//cycle end code - fps counter and stats

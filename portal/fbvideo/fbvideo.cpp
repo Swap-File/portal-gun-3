@@ -117,11 +117,20 @@ static gboolean idle_loop (gpointer data) {
 			
 		if(this_gun.state_duo < 0 ){
 			g_object_set (outputfb, "sync",  false, NULL);
-			g_object_set (textoverlay, "text",  "", NULL);
+			g_object_set (textoverlay, "silent",  true, NULL);
 			g_object_set (inputselector, "active-pad",  inputpads[1], NULL);
 			
 		}else{
+			if (this_gun.state_solo < 0 || this_gun.state_duo < 0) {
+				g_object_set (textoverlay, "color",  4278224639, NULL);  //blue
+			}else if (this_gun.state_solo > 0 || this_gun.state_duo > 0) {
+				g_object_set (textoverlay, "color",  4294932736, NULL); //orange
+			}else{
+				g_object_set (textoverlay, "color",  4294967295, NULL);
+			}
+			
 			g_object_set (outputfb, "sync",  true, NULL);
+			
 			char const * con_good = "Sycned";
 			char const * con_bad ="Sync Err";
 			
@@ -145,6 +154,7 @@ static gboolean idle_loop (gpointer data) {
 			
 			sprintf(temp,"<b>%s</b>\n%s\n%.1fV\n%.0f/%.0f&#8457;\n%.2fms\n%s\n\n%.2d:%.2d:%.2d.%.3d",user_name,connection_status,this_gun.battery_level_pretty,this_gun.temperature_pretty,this_gun.coretemp,this_gun.latency,gun_mode,hours,minutes ,seconds,milliseconds);	
 			g_object_set (textoverlay, "text",  temp, NULL);
+			g_object_set (textoverlay, "silent",  false, NULL);
 			g_object_set (inputselector, "active-pad",  inputpads[0], NULL);
 		}
 	}
@@ -194,7 +204,7 @@ int main(int argc, char *argv[]) {
 	
 	gst_element_set_state (GST_ELEMENT (pipeline), GST_STATE_PLAYING);	
 
-	g_timeout_add (23,idle_loop ,pipeline); 
+	g_timeout_add (20,idle_loop ,pipeline); 
 	g_main_loop_run (loop); //let gstreamer's GLib event loop take over
 	
 	return 0;
