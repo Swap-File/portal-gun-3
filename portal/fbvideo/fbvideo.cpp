@@ -7,10 +7,8 @@
 #include <time.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <wiringPi.h>
 
-GstElement *textoverlay;
-GstElement *inputselector;
+GstElement *outputfb, *textoverlay, *inputselector;
 GstPad *inputpads[2];
 
 char user_name[10];
@@ -116,14 +114,27 @@ static gboolean idle_loop (gpointer data) {
 		&this_gun.battery_level_pretty,&this_gun.temperature_pretty,&this_gun.coretemp,\
 		&this_gun.latency,&this_gun.web_packet_counter,&this_gun.mode);
 		fclose(webin_fp);
-		
-		
-		if(this_gun.mode == 1 ){
+			
+		if(this_gun.state_duo < 0 ){
+			g_object_set (outputfb, "sync",  false, NULL);
+			g_object_set (textoverlay, "text",  "", NULL);
+			g_object_set (inputselector, "active-pad",  inputpads[1], NULL);
+			
+		}else{
+			g_object_set (outputfb, "sync",  true, NULL);
 			char const * con_good = "Sycned";
 			char const * con_bad ="Sync Err";
+			
 			char * connection_status = (char *)con_bad; //assume bad
 			if (this_gun.connected) connection_status = (char *)con_good;
 
+			char const * solo_mode = "Solo Mode";
+			char const * duo_mode ="Duo Mode";
+			
+			char * gun_mode = (char *)solo_mode; //assume solo
+			if (this_gun.mode == 2) gun_mode = (char *)duo_mode;
+			
+			
 			uint_fast32_t current_time = millis();
 			uint_fast32_t milliseconds = (current_time % 1000);
 			uint_fast32_t seconds      = (current_time / 1000) % 60;
@@ -132,18 +143,12 @@ static gboolean idle_loop (gpointer data) {
 
 			char temp[200];
 			
-			sprintf(temp,"<b>%s</b>\n%s\n16.3V\n90&#8457;/160&#8457;\n2.2ms/23.4dB\nDuo Mode\n\n%.2d:%.2d:%.2d.%.3d",user_name,connection_status,hours,minutes ,seconds,milliseconds);	
+			sprintf(temp,"<b>%s</b>\n%s\n%.1fV\n%.0f/%.0f&#8457;\n%.2fms\n%s\n\n%.2d:%.2d:%.2d.%.3d",user_name,connection_status,this_gun.battery_level_pretty,this_gun.temperature_pretty,this_gun.coretemp,this_gun.latency,gun_mode,hours,minutes ,seconds,milliseconds);	
 			g_object_set (textoverlay, "text",  temp, NULL);
 			g_object_set (inputselector, "active-pad",  inputpads[0], NULL);
-		}else{
-			g_object_set (textoverlay, "text",  "", NULL);
-			g_object_set (inputselector, "active-pad",  inputpads[1], NULL);
 		}
-		
 	}
 	
-	
-
 	//return true to automatically have this function called again when gstreamer is idle.
 	return true;
 }
@@ -169,15 +174,16 @@ int main(int argc, char *argv[]) {
 	GMainLoop *loop = g_main_loop_new (NULL, FALSE);
 
 	GstPipeline *pipeline = GST_PIPELINE (gst_parse_launch((char *)"videotestsrc pattern=black ! video/x-raw,width=320,height=240,format=RGB,framerate=10/1 ! queue ! videoin. "
-	"videotestsrc ! video/x-raw,width=640,height=480,format=RGB,framerate=10/1 ! queue ! videorate ! "
+	"udpsrc port=8999 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videorate ! "
 	"video/x-raw,framrate=10/1 ! videoscale ! video/x-raw,width=320,height=240 ! queue ! videoin. "
 	"input-selector name=videoin ! textoverlay vertical-render=true  shaded-background=true valignment=center line-alignment=center halignment=center font-desc=\"DejaVu Sans Mono,48\" name=textinput "
-	"! videoflip method=2 ! videoconvert ! fbdevsink device=/dev/fb1", NULL));
+	"! videoflip method=2 ! videoconvert ! fbdevsink name=outputfb device=/dev/fb1 sync=false", NULL));
 	
 	GstBus *bus = gst_pipeline_get_bus (GST_PIPELINE (pipeline));
 	gst_bus_add_watch (bus, bus_call, loop);
 	gst_object_unref (bus);
 	
+	outputfb = gst_bin_get_by_name (GST_BIN (pipeline), "outputfb");
 	//get the output-selector element
 	inputselector = gst_bin_get_by_name (GST_BIN (pipeline), "videoin");
 	//save each output pad for later
