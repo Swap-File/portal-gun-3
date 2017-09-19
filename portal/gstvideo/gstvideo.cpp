@@ -351,9 +351,9 @@ void start_pipeline(){
 		}else{	
 			//null everything else		
 			if(video_mode_current== GST_RPICAMSRC ){
-			gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_PAUSED);	
+				gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_PAUSED);	
 			}else{
-			gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_NULL);
+				gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_NULL);
 			}
 		}
 		
@@ -379,9 +379,8 @@ void start_pipeline(){
 		gst_object_unref (movieplayer);	
 	}
 	else if (video_mode_requested >= GST_LIBVISUAL_FIRST && video_mode_requested <= GST_LIBVISUAL_LAST){
-
 		g_object_set (outputselector, "active-pad",  outputpads[video_mode_requested - GST_LIBVISUAL_FIRST], NULL);
-	
+		pipeline_active = pipeline[GST_LIBVISUAL_FIRST]; 
 	}else{
 		pipeline_active = pipeline[video_mode_requested]; 
 	}
@@ -542,7 +541,8 @@ int main(int argc, char *argv[]){
 	load_pipeline(GST_VIDEOTESTSRC_CUBED ,(char *)"videotestsrc ! video/x-raw,width=640,height=480,framerate=(fraction)30/1 ! queue ! glupload ! glfiltercube ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true");
 
 	//camera launch 192.168.1.22 gordon    192.168.1.23 chell
-	if(getenv("GORDON"))    {load_pipeline(GST_RPICAMSRC ,(char *)"rpicamsrc preview=0 ! image/jpeg,width=640,height=480,framerate=30/1 ! "
+	if(getenv("GORDON")){
+	load_pipeline(GST_RPICAMSRC ,(char *)"rpicamsrc preview=0 ! image/jpeg,width=640,height=480,framerate=30/1 ! "
 	"queue max-size-time=50000000 leaky=upstream ! jpegparse ! tee name=t "
 	"t. ! queue ! rtpjpegpay ! udpsink host=192.168.1.23 port=9000 sync=false "
 	"t. ! queue ! rtpjpegpay ! udpsink host=127.0.0.1     port=8999 sync=false "

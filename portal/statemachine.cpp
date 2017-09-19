@@ -23,22 +23,23 @@ void local_state_engine(int button, this_gun_struct& this_gun, other_gun_struct&
 		this_gun.initiator = false; //reset initiator
 		this_gun.state_solo = 0; //reset self state
 		this_gun.state_duo = 0; //reset local state
+		this_gun.mode = MODE_DUO;
 	}
 	else if(button == BUTTON_MODE_TOGGLE){
-		
-		//only allow changes in mode 0 for now
-		if (this_gun.state_solo == 0 && this_gun.state_duo == 0){ 
-			if (this_gun.mode == MODE_DUO){
-				this_gun.mode = MODE_SOLO;
-			}else if (this_gun.mode == MODE_SOLO){
-				this_gun.mode = MODE_DUO;
-			}
+		this_gun.initiator = false; //reset initiator
+		this_gun.state_solo = 0; //reset self state
+		this_gun.state_duo = 0; //reset local state
+		if (this_gun.mode == MODE_DUO){
+			this_gun.mode = MODE_SOLO;
+		}else if (this_gun.mode == MODE_SOLO){
+			this_gun.mode = MODE_DUO;
 		}
+			
 		//TODO: add code from V2: (button == BUTTON_BOTH_LONG_ORANGE){  and (button == BUTTON_BOTH_LONG_BLUE){
 	}
 	else if (button == BUTTON_PRIMARY_FIRE){
 		if (this_gun.mode == MODE_DUO){
-			//projector stuff
+			//projector modes
 			if(this_gun.state_duo == 0){
 				this_gun.mode = 1;
 			}else if(this_gun.state_duo == 1){
@@ -50,10 +51,10 @@ void local_state_engine(int button, this_gun_struct& this_gun, other_gun_struct&
 				this_gun.state_duo = 4;  
 			}else if(this_gun.state_duo == 4){ //open portal
 				this_gun.state_duo = 5;
-			}else if(this_gun.state_duo == 5){ //close portal
+			}else if(this_gun.state_duo == 5){ //go back to closed portal for effect change
 				this_gun.state_duo = 4;  
 			}
-			//camera stuff
+			//camera modes
 			else if (this_gun.state_duo == -1){
 				this_gun.state_duo = -2;
 				this_gun.initiator = true;
@@ -62,36 +63,39 @@ void local_state_engine(int button, this_gun_struct& this_gun, other_gun_struct&
 			}else if (this_gun.state_duo == -2 && this_gun.initiator == false){
 				this_gun.state_duo = -4;
 			}else if (this_gun.state_duo == -3 && this_gun.initiator == false){
-				this_gun.state_duo = -4; //connection established
+				this_gun.state_duo = -4;  //connection established
 			}
 		}else if (this_gun.mode == MODE_SOLO){
 			if(this_gun.state_solo >= 0 && this_gun.state_solo < 4){
 				this_gun.state_solo++;
-			}else if(this_gun.state_solo < 0 && this_gun.state_solo > -4){
-				this_gun.state_solo--;
 			}else if(this_gun.state_solo == 4){
 				this_gun.state_solo = 3;
-			}			
+			}else if(this_gun.state_solo < 0 && this_gun.state_solo > -4){
+				this_gun.state_solo--;
+			}else if(this_gun.state_solo == -4){
+				this_gun.state_solo = -3;
+			}		
 		}
 	}
 	else if (button == BUTTON_ALT_FIRE){
 		if (this_gun.mode == MODE_DUO){
-			//quick swap alt button
-			if(this_gun.state_duo == -4){ 
+			if(this_gun.state_duo == -4){ //quick swap function
 				this_gun.state_duo = 4;
 			}
-			//alt fire camera
-			else if (this_gun.state_duo ==0){
+			else if (this_gun.state_duo == 0){ //start duo camera mode
 				this_gun.state_duo = -1;
 			} 
-		}else if (this_gun.mode == MODE_SOLO){ //redo this!
-			if(this_gun.state_solo == 0){
+		}else if (this_gun.mode == MODE_SOLO){
+			if(this_gun.state_solo == 0){ //blue solo portal open
 				this_gun.state_solo = -1;
-			}		
+			}else if(this_gun.state_solo == 3 || this_gun.state_solo == 4){//solo portal color change
+				this_gun.state_solo = -3;
+			}else if(this_gun.state_solo == -3 || this_gun.state_solo == -4){//solo portal color change
+				this_gun.state_solo = 3;
+			}			
 		}
 	}
 
-	
 	//other gun transitions
 	if (this_gun.state_solo == 0){
 		if ((other_gun.state_previous >= 2 || other_gun.state_previous <= -2)  && other_gun.state == 0){
@@ -129,6 +133,7 @@ void local_state_engine(int button, this_gun_struct& this_gun, other_gun_struct&
 			}else{
 				this_gun.state_duo = 2;
 			}
+			this_gun.mode = 2;
 			this_gun.state_solo = 0;
 		}
 	}
@@ -142,6 +147,7 @@ void local_state_engine(int button, this_gun_struct& this_gun, other_gun_struct&
 		//special case of playlist 1 item long
 		if (this_gun.playlist_duo[this_gun.playlist_duo_index] <= -1) this_gun.playlist_duo_index = 0;
 	}
+	
 	if (this_gun.state_solo == 0){
 		this_gun.effect_solo = this_gun.playlist_solo[0];
 		if (this_gun.effect_solo <= -1) this_gun.effect_solo = GST_VIDEOTESTSRC;
@@ -159,7 +165,7 @@ void local_state_engine(int button, this_gun_struct& this_gun, other_gun_struct&
 	}
 	
 	//load next private playlist item
-	if ((this_gun.state_solo == 3 && (this_gun.state_solo_previous == 4 || this_gun.state_solo_previous == -4 || this_gun.state_solo_previous == -3)) || (this_gun.state_solo == -3 && (this_gun.state_solo_previous == -4 || this_gun.state_solo_previous == 4 || this_gun.state_solo_previous == 3))){ 
+	if ((this_gun.state_solo == 3 && (this_gun.state_solo_previous == 4 || this_gun.state_solo_previous == -4 )) || (this_gun.state_solo == -3 && (this_gun.state_solo_previous == -4 || this_gun.state_solo_previous == 4 ))){ 
 		this_gun.effect_solo = this_gun.playlist_solo[this_gun.playlist_solo_index];
 		this_gun.playlist_solo_index++;
 		if (this_gun.playlist_solo[this_gun.playlist_solo_index] <= -1) this_gun.playlist_solo_index = 0;
