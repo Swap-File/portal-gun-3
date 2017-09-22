@@ -15,8 +15,7 @@
 #include <GL/glxext.h>
 
 #include "png_texture.h"
-
-#define CHECK_BIT(var,pos) ((var) & (1<<(pos)))
+#include "../gstvideo.h"
 
 int last_acceleration[2] = {0,0};
 
@@ -36,7 +35,7 @@ float event_horizon_transparency_level = 0;
 
 float global_zoom = 0;
 
-int lastcolor = -1;
+
 
 float torus_offset[360];
 float running_magnitude;
@@ -182,8 +181,11 @@ void draw_point_sprite_vertexes(void){
 	glDrawArrays(GL_POINTS,0,TRAIL_LENGTH * TRAIL_QTY);	
 }
 
-void model_board_animate(int acceleration[], int frame){	
 
+	
+void model_board_animate(int acceleration[], int frame){
+	
+	static int frame_previous = -1;
 	static int running_acceleration[2] = {0,0};
 	
 	//decay the torus offset
@@ -241,34 +243,31 @@ void model_board_animate(int acceleration[], int frame){
 	if (event_horizon_vertex_list_shimmer < .25) event_horizon_vertex_list_shimmer_direction = true;
 	if (event_horizon_vertex_list_shimmer_direction)	event_horizon_vertex_list_shimmer += .01;
 	else												event_horizon_vertex_list_shimmer -= .01;
-	
 
-	if CHECK_BIT(frame,1){
-		if (lastcolor != 1){
+	if (frame == AHRS_OPEN_BLUE || frame == AHRS_CLOSED_BLUE){
+		if (frame_previous != AHRS_OPEN_BLUE && frame_previous != AHRS_CLOSED_BLUE ){
 			global_zoom = 0.0;
 			event_horizon_transparency_level = 1.0; //close portal for a moment on rapid color change
-			lastcolor = 1;
 		} 
-	}else{
-		if (lastcolor != 2){
+	}else if (frame == AHRS_OPEN_ORANGE || frame == AHRS_CLOSED_ORANGE){
+		if (frame_previous != AHRS_OPEN_ORANGE  && frame_previous != AHRS_CLOSED_ORANGE ){
 			global_zoom = 0.0;
 			event_horizon_transparency_level = 1.0;  //close portal for a moment on rapid color change
-			lastcolor = 2;
 		} 
 	}
 
 	//this controls global zoom (0 is blanked)
-	if CHECK_BIT(frame,3){
+	if (frame == AHRS_CLOSED){
+		//turn off display
+		global_zoom = 0.0;
+	}else{
 		//turn on display
 		if (global_zoom == 0.0){
 			global_zoom = 0.01; //bump global_zoom from it's safe spot
 		}
-	}else{
-		//turn off display
-		global_zoom = 0.0;
-		lastcolor = -1;
 	}
-
+	
+	frame_previous = frame;
 	//let blank fader fall to normal size
 	if( global_zoom  > 0 && global_zoom < 1.0){
 		global_zoom += 0.05 ;
@@ -276,7 +275,7 @@ void model_board_animate(int acceleration[], int frame){
 	}
 	
 	//this controls making the portal fade into the backgroud video
-	if CHECK_BIT(frame,0){
+	if (frame == AHRS_CLOSED_ORANGE || frame == AHRS_CLOSED_BLUE){
 		event_horizon_transparency_level = 1.0;
 	}else{
 		//wait for zoom to finish before fading to background
@@ -438,12 +437,16 @@ void model_board_redraw(GLuint video_texture, int frame){
 	
 	glScalef(1.0*720/480,1.0,1.0);  //stretch portal to an oval
 	
-	CHECK_BIT(frame,1) ? glBindTexture(GL_TEXTURE_2D, orange_0) : glBindTexture(GL_TEXTURE_2D, blue_0); //base event horizon texture	
+	//base event horizon texture
+	if      (frame == AHRS_OPEN_BLUE   || frame == AHRS_CLOSED_BLUE)   glBindTexture(GL_TEXTURE_2D, blue_0);
+	else if (frame == AHRS_OPEN_ORANGE || frame == AHRS_CLOSED_ORANGE) glBindTexture(GL_TEXTURE_2D, orange_0);		
 	glColor4f(1.0,1.0,1.0,MIN(1.0,event_horizon_transparency_level)); //not transparent until forced open
 	glRotatef(event_horizon_spin, 0, 0,1.0); //rotate background	
 	glCallList(event_horizon_vertex_list);
 
-	CHECK_BIT(frame,1) ? glBindTexture(GL_TEXTURE_2D, orange_1) : glBindTexture(GL_TEXTURE_2D, blue_1); //base event horizon texture	
+	//base event horizon texture
+	if      (frame == AHRS_OPEN_BLUE   || frame == AHRS_CLOSED_BLUE)   glBindTexture(GL_TEXTURE_2D, blue_1);
+	else if (frame == AHRS_OPEN_ORANGE || frame == AHRS_CLOSED_ORANGE) glBindTexture(GL_TEXTURE_2D, orange_1);	
 	glColor4f(1.0,1.0,1.0, MIN( event_horizon_vertex_list_shimmer ,event_horizon_transparency_level)); //shimmer transparency until forced open
 	glRotatef(event_horizon_spin, 0, 0,1.0); //rotate background more
 	glCallList(event_horizon2_vertex_list);
@@ -453,7 +456,10 @@ void model_board_redraw(GLuint video_texture, int frame){
 	//PORTAL RIM QUAD
 	glPushMatrix(); //save positions pre-rotation and scaling
 	
-	CHECK_BIT(frame,2) ? glBindTexture(GL_TEXTURE_2D, texture_orange) : glBindTexture(GL_TEXTURE_2D, texture_blue); //portal texture
+	//portal texture
+	if      (frame == AHRS_OPEN_BLUE   || frame == AHRS_CLOSED_BLUE)   glBindTexture(GL_TEXTURE_2D, texture_blue);
+	else if (frame == AHRS_OPEN_ORANGE || frame == AHRS_CLOSED_ORANGE) glBindTexture(GL_TEXTURE_2D, texture_orange);
+
 	glColor4f(1.0,1.0,1.0,1.0); //portal texture is not transparent
 	glScalef(1.0*720/480,1.0,1.0);  //stretch portal to an oval
 	glRotatef(portal_spin, 0, 0, 1); //make it spin
@@ -478,7 +484,9 @@ void model_board_redraw(GLuint video_texture, int frame){
 	glEnable(GL_DEPTH_TEST);
 	
 	//TEXTURED TORUS 
-	CHECK_BIT(frame,1) ? glBindTexture(GL_TEXTURE_2D, orange_n) : glBindTexture(GL_TEXTURE_2D, blue_n);
+	if      (frame == AHRS_OPEN_BLUE   || frame == AHRS_CLOSED_BLUE)   glBindTexture(GL_TEXTURE_2D, blue_n);
+	else if (frame == AHRS_OPEN_ORANGE || frame == AHRS_CLOSED_ORANGE) glBindTexture(GL_TEXTURE_2D, orange_n);
+
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 	draw_torus_vbo();
@@ -491,7 +499,10 @@ void model_board_redraw(GLuint video_texture, int frame){
 	
 	//MAIN SHUTTER (for safety, ensures the lasers don't turn on) 
 	glBindTexture(GL_TEXTURE_2D, 0); //no texture
-	GLfloat shutter = CHECK_BIT(frame,3) ? 0.0 : 1.0;
+	
+	GLfloat shutter = 0.0; 
+	if (frame == AHRS_CLOSED)  shutter = 1.0;
+	
 	glColor4f(0.0,0.0,0.0,shutter); 
 	glCallList(shutter_vertex_list);	
 }

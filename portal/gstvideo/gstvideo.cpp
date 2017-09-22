@@ -640,12 +640,13 @@ int main(int argc, char *argv[]){
 	
 	load_pipeline(GST_MOVIE_FIRST ,(char *) "filesrc location=/home/pi/assets/movies/10.mp4 ! qtdemux name=dmux "
 	"dmux. ! queue ! avdec_h264 ! queue ! videoconvert ! "
-	"glupload ! glcolorscale ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false "
-	"dmux. ! queue ! aacparse ! avdec_aac ! audioconvert ! rtpL16pay ! udpsink host=127.0.0.1 port=5000");
+	"glupload ! glcolorscale ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true async=false "
+	"dmux. ! queue ! aacparse ! avdec_aac ! audioconvert ! audio/x-raw,rate=44100,channels=2 ! queue ! udpsink host=127.0.0.1    port=5000");
+	//"dmux. ! queue ! aacparse ! avdec_aac ! queue ! audioconvert ! audio/x-raw,rate=44100,channels=2,encoding-name=L16 ! alsasink device=dmix async=false");
 	
 	//audio loopback to prevent video pause lag
-	system("gst-launch-1.0 udpsrc buffer-size=1 port=5000 caps=application/x-rtp,media=audio,clock-rate=48000,encoding-name=L16,encoding-params=2,channels=2,payload=96 ! rtpL16depay ! queue ! audioconvert ! alsasink &");
-	
+	system("gst-launch-1.0 -vvv udpsrc buffer-size=10 port=5000 caps=application/x-rtp,media=audio,clock-rate=44100,encoding-name=L16,encoding-params=2,channels=2,payload=96 ! rtpL16depay ! queue ! audioconvert ! audio/x-raw,rate=44100,channels=2 ! alsasink device=dmix &");
+	sleep(2);
 	//save the output pads from the visualization pipelines
 	
 	

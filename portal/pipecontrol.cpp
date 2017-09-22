@@ -113,7 +113,8 @@ void gstvideo_command(int portal_state, int video_state,int x, int y, int z){
 }		
 
 void aplay(const char *filename){
-	fprintf(bash_fp, "aplay %s &\n",filename);
+	//use dmix for alsa so sounds can play over each other
+	fprintf(bash_fp, "aplay -D plug:dmix %s &\n",filename);
 	fflush(bash_fp);
 }
 
