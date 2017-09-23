@@ -5,7 +5,7 @@
 #include <gst/gst.h>
 #include <gst/gl/gl.h>
 #include <gst/gl/x11/gstgldisplay_x11.h>
-
+   
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -34,8 +34,10 @@ Window win;
 GLXContext ctx;
 
 GstPad *outputpads[6];	
-GstElement *outputselector;
-GstPipeline *pipeline[75],*pipeline_active;
+GstElement *outputselector, *ouputaudio, *audioinput;
+GstPipeline *pipeline[75],*pipeline_active,*audio_output_pipeline;
+GstContext *x11context;
+GstContext *ctxcontext;
 
 GLuint normal_texture;
 volatile GLuint gst_shared_texture;
@@ -74,16 +76,11 @@ static void reshape(int screen_width, int screen_height)
 	
 }
 
-GstContext *x11context;
-GstContext *ctxcontext;
-
 void video_ended(){
-	if (parentpid != 0){
-		kill(parentpid,SIGUSR2);
-	}
+	if (parentpid != 0)	kill(parentpid,SIGUSR2);
 }
-static gboolean bus_call (GstBus *bus, GstMessage *msg, gpointer data)
-{
+
+static gboolean bus_call (GstBus *bus, GstMessage *msg, gpointer data){
 	GMainLoop *loop = (GMainLoop*)data;
 
 	switch (GST_MESSAGE_TYPE (msg))
@@ -218,7 +215,6 @@ static void make_window( Display *dpy, const char *name,int x, int y, int width,
 	XFree(visinfo);
 }
 
-
 /**
 * Determine whether or not a GLX extension is supported.
 */
@@ -236,7 +232,6 @@ static int is_glx_extension_supported(Display *dpy, const char *query)
 	ptr = strstr(glx_extensions, query);
 	return ((ptr != NULL) && ((ptr[len] == ' ') || (ptr[len] == '\0')));
 }
-
 
 /**
 * Attempt to determine whether or not the display is synched to vblank.
@@ -497,7 +492,7 @@ static gboolean idle_loop (gpointer data) {
 int main(int argc, char *argv[]){
 	
 	if (argc < 2){
-		printf("GSTVIDEO: No Parent Pid Supplied, EoS signaling disabled!");
+		printf("GSTVIDEO: No Parent Pid Supplied, EoS signaling disabled!\n");
 	}else{
 		parentpid = atoi(argv[1]);
 	}
@@ -555,7 +550,7 @@ int main(int argc, char *argv[]){
 	/* Initialize GStreamer */
 	const char *arg1_gst[]  = {"gstvideo"}; 
 	const char *arg2_gst[]  = {"--gst-disable-registry-update"};  //dont rescan the registry to load faster.
-	const char *arg3_gst[]  = {"--gst-debug-level=1"};  //dont show debug messages
+	const char *arg3_gst[]  = {"--gst-debug-level=3"};  //dont show debug messages
 	char ** argv_gst[3] = {(char **)arg1_gst,(char **)arg2_gst,(char **)arg3_gst};
 	int argc_gst = 3;
 	gst_init (&argc_gst, argv_gst );
@@ -571,13 +566,14 @@ int main(int argc, char *argv[]){
 	gst_structure_set (gst_context_writable_structure (ctxcontext), "context", GST_GL_TYPE_CONTEXT, gl_context, NULL);
 	
 	//preload all pipelines we will be switching between.  This allows faster switching than destroying and recrearting the pipelines
-	//Also, if too many pipelines get destroyed and recreated I have noticed gstreamer or x11 will eventually crash with context errors
-	//this can switch between pipelines in 5-20ms on a Pi3.
+	//I've noticed that if too many pipelines get destroyed (gst_object_unref) and recreated  gstreamer & x11 will eventually crash with context errors
+	//this can switch between pipelines in 5-20ms on a Pi3, which is quick enough for the human eye
 	
 	//test patterns
 	load_pipeline(GST_BLANK ,(char *)"videotestsrc pattern=2 ! video/x-raw,width=640,height=480,framerate=(fraction)30/1 ! queue ! glupload ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true");
 	load_pipeline(GST_VIDEOTESTSRC ,(char *)"videotestsrc ! video/x-raw,width=640,height=480,framerate=(fraction)30/1 ! queue ! glupload ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true");
 	load_pipeline(GST_VIDEOTESTSRC_CUBED ,(char *)"videotestsrc ! video/x-raw,width=640,height=480,framerate=(fraction)30/1 ! queue ! glupload ! glfiltercube ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true");
+
 
 	//camera launch 192.168.1.22 gordon    192.168.1.23 chell
 	if(getenv("GORDON")){
@@ -597,7 +593,7 @@ int main(int argc, char *argv[]){
 		printf("SET THE GORDON OR CHELL ENVIRONMENT VARIABLE!");
 		exit(1);
 	}
-
+	
 	//normal
 	load_pipeline(GST_NORMAL ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	
@@ -625,7 +621,8 @@ int main(int argc, char *argv[]){
 	
 	//audio effects - alsasrc takes a second or so to init, so here a output-selector is used
 	//effect order matters since pads on the output selector can't easily be named in advance 
-	load_pipeline(GST_LIBVISUAL_FIRST,(char *)"alsasrc buffer-time=10000 ! queue max-size-time=10000000 leaky=downstream ! "
+	//audio format must match the movie output stuff, otherwise the I2S Soundcard will get slow and laggy when switching formats!
+	load_pipeline(GST_LIBVISUAL_FIRST,(char *)"alsasrc buffer-time=10000 ! audio/x-raw,layout=interleaved,rate=48000,format=S32LE,channels=2 ! queue max-size-time=10000000 leaky=downstream ! audioconvert ! "
 	"output-selector name=audioin pad-negotiation-mode=Active "
 	"audioin. ! libvisual_jess     ! videosink. "
 	"audioin. ! libvisual_infinite ! videosink. "
@@ -637,19 +634,15 @@ int main(int argc, char *argv[]){
 	"glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! "
 	"glfilterapp name=grabtexture ! fakesink sync=false async=false");
 	
-	
+ 	//movie pipeline, has all videos as long long video, chapter start and end times stored in gstvideo.h
+	//it doesnt work well to load and unload various input files due to the 
+	//audio format must match the visual input stuff, otherwise the I2S Soundcard will get slow and laggy when switching formats! 
 	load_pipeline(GST_MOVIE_FIRST ,(char *) "filesrc location=/home/pi/assets/movies/10.mp4 ! qtdemux name=dmux "
-	"dmux. ! queue ! avdec_h264 ! queue ! videoconvert ! "
-	"glupload ! glcolorscale ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true async=false "
-	"dmux. ! queue ! aacparse ! avdec_aac ! audioconvert ! audio/x-raw,rate=44100,channels=2 ! queue ! udpsink host=127.0.0.1    port=5000");
-	//"dmux. ! queue ! aacparse ! avdec_aac ! queue ! audioconvert ! audio/x-raw,rate=44100,channels=2,encoding-name=L16 ! alsasink device=dmix async=false");
-	
-	//audio loopback to prevent video pause lag
-	system("gst-launch-1.0 -vvv udpsrc buffer-size=10 port=5000 caps=application/x-rtp,media=audio,clock-rate=44100,encoding-name=L16,encoding-params=2,channels=2,payload=96 ! rtpL16depay ! queue ! audioconvert ! audio/x-raw,rate=44100,channels=2 ! alsasink device=dmix &");
-	sleep(2);
+	"dmux.video_0 ! queue ! avdec_h264 ! queue ! videoconvert ! "
+	"glupload ! glcolorscale ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false async=false "
+	"dmux.audio_0 ! queue ! aacparse ! avdec_aac ! audioconvert ! audio/x-raw,layout=interleaved,rate=48000,format=S32LE,channels=2 ! alsasink sync=false async=false device=dmix");
+
 	//save the output pads from the visualization pipelines
-	
-	
 	//get the output-selector element
 	outputselector = gst_bin_get_by_name (GST_BIN (pipeline[GST_LIBVISUAL_FIRST]), "audioin");
 	
