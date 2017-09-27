@@ -65,7 +65,37 @@
 
 //these are the magic numbers for start times, in nanoseconds
 // 11000000000 is 11 seconds
-const long long int movie_start_times[12] = { 11000000000, 13000000000, 16000000000, 18000000000, 19000000000, 20000000000, 23000000000, 24000000000, 11000000000, 11000000000, 11000000000, 11000000000 };
-const long long int movie_end_times[12] =   { 23000000000, 16000000000, 18000000000, 19000000000, 20000000000, 22000000000, 24000000000, 25000000000, 11000000000, 11000000000, 11000000000, 11000000000 };
+
+#define GST_MOVIE1_LENGTH 24491
+#define GST_MOVIE2_LENGTH 16783
+#define GST_MOVIE3_LENGTH 12079
+#define GST_MOVIE4_LENGTH 82000
+#define GST_MOVIE5_LENGTH 30430
+#define GST_MOVIE6_LENGTH 22923
+#define GST_MOVIE7_LENGTH 19086
+#define GST_MOVIE8_LENGTH 70000
+#define GST_MOVIE9_LENGTH 94000
+#define GST_MOVIE10_LENGTH 53186
+#define GST_MOVIE11_LENGTH 184000
+#define GST_MOVIE12_LENGTH 140000
+
+const long long int movie_1_start = 0;
+const long long int movie_2_start = GST_MOVIE1_LENGTH;
+const long long int movie_3_start = movie_2_start + GST_MOVIE2_LENGTH;
+const long long int movie_4_start = movie_3_start + GST_MOVIE3_LENGTH;
+const long long int movie_5_start = movie_4_start + GST_MOVIE4_LENGTH;
+const long long int movie_6_start = movie_5_start + GST_MOVIE5_LENGTH;;
+const long long int movie_7_start = movie_6_start + GST_MOVIE6_LENGTH;;
+const long long int movie_8_start = movie_7_start + GST_MOVIE7_LENGTH;
+const long long int movie_9_start = movie_8_start + GST_MOVIE8_LENGTH;;
+const long long int movie_10_start = movie_9_start + GST_MOVIE9_LENGTH;
+const long long int movie_11_start = movie_10_start + GST_MOVIE10_LENGTH;
+const long long int movie_12_start = movie_11_start + GST_MOVIE11_LENGTH;
+
+#define MOVIE_OFFSET_START 10000
+#define MOVIE_OFFSET_END 10000
+
+const long long int movie_start_times[12] = { movie_1_start + MOVIE_OFFSET_START, movie_2_start + MOVIE_OFFSET_START, movie_3_start + MOVIE_OFFSET_START, movie_4_start + MOVIE_OFFSET_START, movie_5_start + MOVIE_OFFSET_START, movie_6_start + MOVIE_OFFSET_START, movie_7_start + MOVIE_OFFSET_START, movie_8_start + MOVIE_OFFSET_START, movie_9_start + MOVIE_OFFSET_START, movie_10_start + MOVIE_OFFSET_START, movie_11_start + MOVIE_OFFSET_START, movie_12_start + MOVIE_OFFSET_START };
+const long long int movie_end_times[12] =   { movie_2_start - MOVIE_OFFSET_END  , movie_3_start - MOVIE_OFFSET_END  ,  movie_4_start - MOVIE_OFFSET_END ,  movie_5_start - MOVIE_OFFSET_END ,  movie_6_start - MOVIE_OFFSET_END ,  movie_7_start - MOVIE_OFFSET_END ,  movie_8_start - MOVIE_OFFSET_END ,  movie_9_start - MOVIE_OFFSET_END , movie_10_start - MOVIE_OFFSET_END , movie_11_start - MOVIE_OFFSET_END  , movie_12_start - MOVIE_OFFSET_END ,  movie_2_start + GST_MOVIE12_LENGTH - MOVIE_OFFSET_END  };
 		
 #endif

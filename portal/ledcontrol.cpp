@@ -12,14 +12,14 @@
 #include <wiringPiSPI.h>
 
 #define EFFECT_LENGTH 20  //length of the effect, doubled for output
-#define LED_STRIP_LENGTH 40  //actual physical length
+#define LED_STRIP_LENGTH 20  //actual physical length (two stacks of 20 in parallel)
 
 #define BREATHING_PERIOD 2 
 #define EFFECT_RESOLUTION 400
 #define BREATHING_RATE 2000
 
-#define CLK_PIN 25
-#define DATA_PIN 27
+#define CLK_PIN 27
+#define DATA_PIN 25
 
 CRGB main_buffer_step1[EFFECT_LENGTH];
 CRGB main_buffer_step2[EFFECT_LENGTH];
@@ -65,7 +65,8 @@ void bang_buffer(uint8_t * input, int bytes){
 			
 			if (result)   digitalWrite (DATA_PIN, HIGH);
 			else   		  digitalWrite (DATA_PIN, LOW);
-		delayMicroseconds (1);
+			
+			delayMicroseconds (1);
 			digitalWrite (CLK_PIN, HIGH) ;
 			delayMicroseconds (2);
 			digitalWrite (CLK_PIN, LOW);
@@ -317,22 +318,13 @@ float ledcontrol_update(int width_temp,int width_update_speed_temp,int overlay_t
 	led_index = (led_index + 1) % EFFECT_LENGTH;
 	
 	//32 zeros is start of data frame, 32 is end of frame
-	unsigned char  output_buffer[4 + LED_STRIP_LENGTH*4 + 4];
-	
+	uint8_t output_buffer[4 + LED_STRIP_LENGTH*4 + 4];
 	int i = 0; //physical led position
 	
 	//start of data
 	for (int j = 0; j < 4; j++) output_buffer[i++] = 0x00;
 	
-	//led ring 1 output
-	for (int j = 0; j < EFFECT_LENGTH; j++){
-		output_buffer[i++] = 0xFF;
-		output_buffer[i++] = main_buffer_step2[j].b;
-		output_buffer[i++] = main_buffer_step2[j].g;
-		output_buffer[i++] = main_buffer_step2[j].r;
-	}
-	
-	//led ring 2 output
+	//led ring output
 	for (int j = 0; j < EFFECT_LENGTH; j++){
 		output_buffer[i++] = 0xFF;
 		output_buffer[i++] = main_buffer_step2[j].b;
@@ -342,8 +334,7 @@ float ledcontrol_update(int width_temp,int width_update_speed_temp,int overlay_t
 	
 	//end of data
 	for (int j = 0; j < 4; j++) output_buffer[i++] = 0x00;
-	
-	
+		
 	bang_buffer(output_buffer, sizeof(output_buffer)) ;
 
 	//printf("Benchmark Microseconds! %d \n",micros()- start_time);
@@ -354,17 +345,15 @@ float ledcontrol_update(int width_temp,int width_update_speed_temp,int overlay_t
 
 void ledcontrol_wipe(void){
 	
-
 	//32 zeros is start of data frame, 16 is end
-	uint8_t output_buffer[8 + LED_STRIP_LENGTH*4 + 8];
-	
+	uint8_t output_buffer[4 + LED_STRIP_LENGTH*4 + 4];
 	int i = 0; //physical led position
 	
 	//start of data
-	for (int j = 0; j < 8; j++) output_buffer[i++] = 0x00;
+	for (int j = 0; j < 4; j++) output_buffer[i++] = 0x00;
 	
 	//led ring 1 output
-	for (int j = 0; j < EFFECT_LENGTH * 2; j++){
+	for (int j = 0; j < LED_STRIP_LENGTH; j++){
 		output_buffer[i++] = 0xFF;
 		output_buffer[i++] = 0x00;
 		output_buffer[i++] = 0x00;
@@ -372,7 +361,8 @@ void ledcontrol_wipe(void){
 	}
 	
 	//end of data
-	for (int j = 0; j < 8; j++) output_buffer[i++] = 0x00;
-	bang_buffer(output_buffer, sizeof(output_buffer)) ;
+	for (int j = 0; j < 4; j++) output_buffer[i++] = 0x00;
+	
+	bang_buffer(output_buffer, sizeof(output_buffer));
 
 }

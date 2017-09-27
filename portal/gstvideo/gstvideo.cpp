@@ -34,8 +34,8 @@ Window win;
 GLXContext ctx;
 
 GstPad *outputpads[6];	
-GstElement *outputselector, *ouputaudio, *audioinput;
-GstPipeline *pipeline[75],*pipeline_active,*audio_output_pipeline;
+GstElement *outputselector;
+GstPipeline *pipeline[75],*pipeline_active;
 GstContext *x11context;
 GstContext *ctxcontext;
 
@@ -550,7 +550,7 @@ int main(int argc, char *argv[]){
 	/* Initialize GStreamer */
 	const char *arg1_gst[]  = {"gstvideo"}; 
 	const char *arg2_gst[]  = {"--gst-disable-registry-update"};  //dont rescan the registry to load faster.
-	const char *arg3_gst[]  = {"--gst-debug-level=3"};  //dont show debug messages
+	const char *arg3_gst[]  = {"--gst-debug-level=0"};  //dont show debug messages
 	char ** argv_gst[3] = {(char **)arg1_gst,(char **)arg2_gst,(char **)arg3_gst};
 	int argc_gst = 3;
 	gst_init (&argc_gst, argv_gst );
@@ -637,7 +637,7 @@ int main(int argc, char *argv[]){
  	//movie pipeline, has all videos as long long video, chapter start and end times stored in gstvideo.h
 	//it doesnt work well to load and unload various input files due to the 
 	//audio format must match the visual input stuff, otherwise the I2S Soundcard will get slow and laggy when switching formats! 
-	load_pipeline(GST_MOVIE_FIRST ,(char *) "filesrc location=/home/pi/assets/movies/10.mp4 ! qtdemux name=dmux "
+	load_pipeline(GST_MOVIE_FIRST ,(char *) "filesrc location=/home/pi/assets/movies/all.mp4 ! qtdemux name=dmux "
 	"dmux.video_0 ! queue ! avdec_h264 ! queue ! videoconvert ! "
 	"glupload ! glcolorscale ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false async=false "
 	"dmux.audio_0 ! queue ! aacparse ! avdec_aac ! audioconvert ! audio/x-raw,layout=interleaved,rate=48000,format=S32LE,channels=2 ! alsasink sync=false async=false device=dmix");
