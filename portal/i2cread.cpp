@@ -7,6 +7,7 @@
 #include <wiringPiI2C.h>
 #include <unistd.h>
 #include <byteswap.h>
+#include <math.h>
 
 static int i2c_accel[3];
 static int i2c_adc[4];
@@ -15,6 +16,18 @@ static int accel_fd;  //file handle
 static int adc_fd;  //file handle
 static int adc_channel = 0;  //what channel we are working on
 static bool adc_done = true; //is a conversion in progress?
+
+float temperature_reading(int input){
+	float R =  10000.0 / (26000.0/((float)input) - 1.0);
+    #define B 3428.0 //# Thermistor constant from thermistor datasheet
+    #define R0 10000.0 //# Resistance of the thermistor being used
+    #define t0 273.15 //# 0 deg C in K
+    #define t25 298.15 //t25 = t0 + 25.0; //# 25 deg C in K
+    //# Steinhart-Hart equation
+    float inv_T = 1/t25 + 1/B * log(R/R0);
+    float T = (1/inv_T - t0) * 1; //adjust 1 here
+    return T * 9.0 / 5.0 + 32.0; //# Convert C to F
+}
 
 void read_acclerometer(){
 	
@@ -117,7 +130,7 @@ void i2creader_update(this_gun_struct& this_gun){
 	this_gun.accel[2] = i2c_accel[2];
 	
 	this_gun.battery_level_pretty = i2c_adc[0];
-	this_gun.temperature_pretty = i2c_adc[1];
+	this_gun.temperature_pretty =temperature_reading(i2c_adc[0]);
 }
 
 
