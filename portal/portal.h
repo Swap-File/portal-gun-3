@@ -29,8 +29,8 @@ struct this_gun_struct {
 	int8_t state_solo_previous = 0;
 	bool initiator = false; //Did this gun start the connection request?
 	uint32_t clock = 0;
-	uint8_t ir_pwm = 255;
-	uint8_t fan_pwm = 255;
+	int  ir_pwm = 0;
+	int  fan_pwm = 1024;
 	bool connected = false; 
 	
 	int8_t playlist_solo[playlist_solo_SIZE]={-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
