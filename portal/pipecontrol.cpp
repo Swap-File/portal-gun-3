@@ -15,8 +15,6 @@
 #include <sys/time.h>  
 #include <wiringPi.h>
 
-#define BUCKET_SIZE 2
-
 uint32_t ping_time = 0;
 uint8_t web_packet_counter = 0;
 
@@ -273,106 +271,151 @@ int io_update(const this_gun_struct& this_gun){
 	pwmWrite (PIN_FAN_PWM,this_gun.fan_pwm);
 	pwmWrite (PIN_IR_PWM,this_gun.ir_pwm);
 		
-	static int primary_bucket = 0;
-	static int alt_bucket = 0;
-	static int mode_bucket = 0;
-	static int reset_bucket = 0;
-
-	//basic bucket debounce
-	if(digitalRead (PIN_PRIMARY) == 0) primary_bucket++;
-	else primary_bucket = 0;
-	if(digitalRead (PIN_ALT) == 0)     alt_bucket++;
-	else alt_bucket = 0;
-	if(digitalRead (PIN_MODE) == 0)    mode_bucket++;
-	else mode_bucket = 0;
-	if(digitalRead (PIN_RESET) == 0)   reset_bucket++;
-	else reset_bucket = 0;
+	static uint_fast8_t primary_bucket = 0;
+	static uint_fast8_t alt_bucket = 0;
+	static uint_fast8_t mode_bucket = 0;
+	static uint_fast8_t reset_bucket = 0;
 	
-	if (primary_bucket > BUCKET_SIZE)	return BUTTON_PRIMARY_FIRE;
-	if (alt_bucket > BUCKET_SIZE)		return BUTTON_ALT_FIRE;
-	if (mode_bucket > BUCKET_SIZE)		return BUTTON_MODE_TOGGLE;
-	if (reset_bucket > BUCKET_SIZE)		return BUTTON_RESET;
+	static bool primary_cleared = true;
+	static bool alt_cleared = true;
+	static bool mode_cleared = true;
+	static bool reset_cleared = true;
+	
+	#define DEBOUNCE_MAX 3
+	//basic bucket debounce
+	if(digitalRead (PIN_PRIMARY) == 0) {
+		if (primary_bucket < DEBOUNCE_MAX) {
+			primary_bucket++;
+			if (primary_bucket == DEBOUNCE_MAX && primary_cleared) return BUTTON_PRIMARY_FIRE;
+		}
+	}
+	else {
+		if (primary_bucket > 0) {
+			primary_bucket--;
+			if (primary_bucket == 0) primary_cleared = true;
+		}
+	}
+	
+	if(digitalRead (PIN_ALT) == 0) {
+		if (alt_bucket < DEBOUNCE_MAX) {
+			alt_bucket++;
+			if (alt_bucket == DEBOUNCE_MAX && alt_cleared) return BUTTON_ALT_FIRE;
+		}
+	}
+	else {
+		if (alt_bucket > 0) {
+			alt_bucket--;
+			if (alt_bucket == 0) alt_cleared = true;
+		}
+	}
+	
+	if(digitalRead (PIN_MODE) == 0) {
+		if (mode_bucket < DEBOUNCE_MAX) {
+			mode_bucket++;
+			if (mode_bucket == DEBOUNCE_MAX && mode_cleared) return BUTTON_MODE_TOGGLE;
+		}
+	}
+	else {
+		if (mode_bucket > 0){
+			mode_bucket--;
+			if (mode_bucket == 0) mode_cleared = true;
+		}
+	}
+	
+	if(digitalRead (PIN_RESET) == 0) {
+		if (reset_bucket < DEBOUNCE_MAX) {
+			reset_bucket++;
+			if (reset_bucket == DEBOUNCE_MAX && reset_cleared) return BUTTON_RESET;
+		}
+	}
+	else {
+		if (reset_bucket > 0) {
+			reset_bucket--;
+			if (reset_bucket == 0) reset_cleared = true;
+		}
+	}
+	
 	return BUTTON_NONE;	
 }
 void audio_effects(const this_gun_struct& this_gun){
 	
 	//LOCAL STATES
 	if ((this_gun.state_duo_previous != 0 || this_gun.state_solo_previous != 0) && (this_gun.state_duo == 0 && this_gun.state_solo == 0)){
-		aplay("/home/pi/portalgun/portal_close1.wav");
+		aplay("/home/pi/assets/portalgun/portal_close1.wav");
 	}
 	//on entering state 1
 	else if ((this_gun.state_duo_previous != this_gun.state_duo) && (this_gun.state_duo == 1)){
-		aplay("/home/pi/physcannon/physcannon_charge1.wav");
+		aplay("/home/pi/assets/physcannon/physcannon_charge1.wav");
 	}
 	//on entering state -1
 	else if ((this_gun.state_duo_previous != -1)&& (this_gun.state_duo == -1)){
-		aplay("/home/pi/physcannon/physcannon_charge1.wav");			
+		aplay("/home/pi/assets/physcannon/physcannon_charge1.wav");			
 	}
 	//on entering state 2
 	else if ((this_gun.state_duo_previous !=2 ) &&  (this_gun.state_duo == 2)){
-		aplay("/home/pi/physcannon/physcannon_charge2.wav");		
+		aplay("/home/pi/assets/physcannon/physcannon_charge2.wav");		
 	}
 	//on entering state -2 from -1
 	else if ((this_gun.state_duo_previous !=-2 ) &&  (this_gun.state_duo == -2)){
-		aplay("/home/pi/physcannon/physcannon_charge2.wav");
+		aplay("/home/pi/assets/physcannon/physcannon_charge2.wav");
 	}	
 	else if ((this_gun.state_duo_previous !=-3 ) &&  (this_gun.state_duo == -3)){
-		aplay("/home/pi/physcannon/physcannon_charge3.wav");
+		aplay("/home/pi/assets/physcannon/physcannon_charge3.wav");
 	}	
 	//on entering state 3 from 2
 	else if ((this_gun.state_duo_previous == 2 ) && ( this_gun.state_duo ==3)){	
-		aplay("/home/pi/portalgun/portalgun_shoot_blue1.wav");
+		aplay("/home/pi/assets/portalgun/portalgun_shoot_blue1.wav");
 	}
 	//on quick swap to rec
 	else if ((this_gun.state_duo_previous < 4 )&& (this_gun.state_duo == 4)){
-		aplay("/home/pi/portalgun/portal_open2.wav");
+		aplay("/home/pi/assets/portalgun/portal_open2.wav");
 	}
 	//on quick swap to transmit
 	else if ((this_gun.state_duo_previous >= 4 )&& (this_gun.state_duo <= -4)){
-		aplay("/home/pi/portalgun/portal_fizzle2.wav");
+		aplay("/home/pi/assets/portalgun/portal_fizzle2.wav");
 	}	
 
 	//shared effect change close portal end sfx
 	else if (this_gun.state_duo_previous == 4 && this_gun.state_duo == 5){
-		aplay("/home/pi/portalgun/portal_close1.wav");
+		aplay("/home/pi/assets/portalgun/portal_close1.wav");
 	}	
 	//shared effect change open portal end sfx
 	else if (this_gun.state_duo_previous == 5 && this_gun.state_duo == 4){
-		aplay("/home/pi/portalgun/portal_open1.wav");
+		aplay("/home/pi/assets/portalgun/portal_open1.wav");
 	}	
 	
 	//SELF STATES
 	else if ((this_gun.state_solo_previous != this_gun.state_solo) && (this_gun.state_solo == 1 || this_gun.state_solo == -1)){
-		aplay("/home/pi/physcannon/physcannon_charge1.wav");
+		aplay("/home/pi/assets/physcannon/physcannon_charge1.wav");
 	}
 	//on entering state 2 or -2
 	else if ((this_gun.state_solo_previous != this_gun.state_solo) && (this_gun.state_solo == 2 || this_gun.state_solo == -2)){
-		aplay("/home/pi/physcannon/physcannon_charge2.wav");				
+		aplay("/home/pi/assets/physcannon/physcannon_charge2.wav");				
 	}
 	
 	//on entering state 3 or -3 from 0
 	else if ((this_gun.state_solo_previous < 3 && this_gun.state_solo_previous > -3  ) && (this_gun.state_solo == 3 || this_gun.state_solo == -3)){
-		aplay("/home/pi/portalgun/portalgun_shoot_blue1.wav");
+		aplay("/home/pi/assets/portalgun/portalgun_shoot_blue1.wav");
 	}
 
 	//on quick swap 
 	else if (( this_gun.state_solo_previous >= 3 && this_gun.state_solo == -3) || (this_gun.state_solo_previous <= -3 && this_gun.state_solo == 3)){
-		aplay("/home/pi/portalgun/portal_open2.wav");		
+		aplay("/home/pi/assets/portalgun/portal_open2.wav");		
 	}
 	
 	//private end sfx
 	else if ((this_gun.state_solo_previous > 3 && this_gun.state_solo == 3) || (this_gun.state_solo_previous < -3 && this_gun.state_solo == -3)){
-		aplay("/home/pi/portalgun/portal_close1.wav");
+		aplay("/home/pi/assets/portalgun/portal_close1.wav");
 	}
 	
 	//private start sfx
 	else if ((this_gun.state_solo_previous != -4 && this_gun.state_solo == -4) || (this_gun.state_solo_previous != 4 && this_gun.state_solo == 4)){
-		aplay("/home/pi/portalgun/portal_open1.wav");
+		aplay("/home/pi/assets/portalgun/portal_open1.wav");
 	}
 	
 	//rip from private to shared mode sfx
 	else if ((this_gun.state_solo_previous <= -3 || this_gun.state_solo_previous>=3) && this_gun.state_duo == 4){
-		aplay("/home/pi/portalgun/portal_open2.wav");		
+		aplay("/home/pi/assets/portalgun/portal_open2.wav");		
 	}
 	
 	return;

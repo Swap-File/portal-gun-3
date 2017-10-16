@@ -9,10 +9,10 @@
 #define PIN_FAN_PWM  26 //pwm0
 #define PIN_IR_PWM   23 //pwm1
 
-#define PIN_PRIMARY 2
-#define PIN_ALT     3
-#define PIN_MODE    4 
-#define PIN_RESET   5
+#define PIN_PRIMARY 5
+#define PIN_ALT     4
+#define PIN_MODE    3 
+#define PIN_RESET   2
 
 void pipecontrol_setup(void);
 void pipecontrol_cleanup(void);

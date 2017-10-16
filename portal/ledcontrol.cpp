@@ -18,8 +18,8 @@
 #define EFFECT_RESOLUTION 400
 #define BREATHING_RATE 2000
 
-#define CLK_PIN 27
-#define DATA_PIN 25
+#define CLK_PIN 22
+#define DATA_PIN 27
 
 CRGB main_buffer_step1[EFFECT_LENGTH];
 CRGB main_buffer_step2[EFFECT_LENGTH];
