@@ -430,31 +430,53 @@ static gboolean idle_loop (gpointer data) {
 	static double tRate0 = -1.0;
 	double t = current_time();
 
-	int count = 1;
-	char buffer[100];
-	//stdin is line buffered so we can cheat a little bit
-	while (count > 0){ // dump entire buffer
-		count = read(input_command_pipe, buffer, sizeof(buffer)-1);
-		if (count > 1){ //ignore blank lines
-			buffer[count-1] = '\0';
-			//keep most recent line
-			int temp[5];
-			int result = sscanf(buffer,"%d %d %d %d %d", &temp[0],&temp[1],&temp[2],&temp[3],&temp[4]);
-			if (result != 5){
-				fprintf(stderr, "Unrecognized input with %d items.\n", result);
-			}else{
-				portal_mode_requested = temp[0];
-				video_mode_requested  = temp[1];
-				accleration[0]        = temp[2];
-				accleration[1]        = temp[3];
-				accleration[2]        = temp[4];
+	//read as much as we can
+	while (1){
+		
+		#define buf_len 100
+		static int buf_index = 0;
+		char buffer[buf_len];
+		
+		int characters_read = read(input_command_pipe, &buffer[buf_index], 1);
+		
+		if (characters_read == 0){ //done!
+			printf("Done.");
+			break; 
+		}else{
+			buf_index++;
+		}
+		
+		if (buf_index >= buf_len - 1) { //overflow
+			buf_index = 0;  
+			printf("\nOverflow..\n");
+		}
+		
+		if (buf_index > 0){
+			if (buffer[buf_index-1] == '\n'){  //parse it!
+				
+				buffer[buf_index] = '\0'; //replace newline with null to terminate string  
+				//printf("\nParsing..\n");
+				//printf("\n%s\n",buffer);
+				
+				int temp[5];
+				int result = sscanf(buffer,"%d %d %d %d %d", &temp[0],&temp[1],&temp[2],&temp[3],&temp[4]);
+				if (result != 5){
+					fprintf(stderr, "Unrecognized input with %d items.\n", result);
+				}else{
+					portal_mode_requested = temp[0];
+					video_mode_requested  = temp[1];
+					accleration[0]        = temp[2];
+					accleration[1]        = temp[3];
+					accleration[2]        = temp[4];
+				}
+				
+				buf_index = 0;
 			}
 		}
 	}
+	
 	if (movieisplaying){
-	if (video_mode_current >= GST_MOVIE_FIRST && video_mode_current <= GST_MOVIE_LAST ){
-		
-
+		if (video_mode_current >= GST_MOVIE_FIRST && video_mode_current <= GST_MOVIE_LAST ){
 			int index = video_mode_current - GST_MOVIE_FIRST;
 			if (get_position() > movie_end_times[index]){
 				printf("End of Chapter!\n");
@@ -462,8 +484,9 @@ static gboolean idle_loop (gpointer data) {
 				gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_PAUSED);
 				movieisplaying = false;
 			}
-}
+		}
 	}
+	
 	model_board_animate(accleration,portal_mode_requested);
 	model_board_redraw(gst_shared_texture,portal_mode_requested);
 	
@@ -581,13 +604,13 @@ int main(int argc, char *argv[]){
 		"queue max-size-time=50000000 leaky=upstream ! jpegparse ! tee name=t "
 		"t. ! queue ! rtpjpegpay ! udpsink host=192.168.1.23 port=9000 sync=false "
 		"t. ! queue ! rtpjpegpay ! udpsink host=127.0.0.1    port=8999 sync=false "
-		"t. ! queue ! multifilesink location=/var/www/html/tmp/snapshot.jpg");
+		"t. ! queue ! jpegdec ! videorate ! video/x-raw,framerate=10/1 ! videoscale ! video/x-raw,width=400,height=240 ! videoflip method=3 ! jpegenc ! multifilesink location=/var/www/html/tmp/snapshot.jpg sync=false");
 	}else if(getenv("CHELL")){
 		load_pipeline(GST_RPICAMSRC ,(char *)"rpicamsrc preview=0 ! image/jpeg,width=640,height=480,framerate=30/1 ! "
 		"queue max-size-time=50000000 leaky=upstream ! jpegparse ! tee name=t "
 		"t. ! queue ! rtpjpegpay ! udpsink host=192.168.1.22 port=9000 sync=false "
 		"t. ! queue ! rtpjpegpay ! udpsink host=127.0.0.1    port=8999 sync=false "
-		"t. ! queue ! multifilesink location=/var/www/html/tmp/snapshot.jpg");
+		"t. ! queue ! jpegdec ! videorate ! video/x-raw,framerate=10/1 ! videoscale ! video/x-raw,width=400,height=240 ! videoflip method=3 ! jpegenc ! multifilesink location=/var/www/html/tmp/snapshot.jpg  sync=false");
 	}
 	else {
 		printf("SET THE GORDON OR CHELL ENVIRONMENT VARIABLE!");

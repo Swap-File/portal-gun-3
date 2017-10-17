@@ -33,9 +33,9 @@ struct this_gun_struct {
 	int  fan_pwm = 1024;
 	bool connected = false; 
 	
-	int8_t playlist_solo[playlist_solo_SIZE]={-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+	int8_t playlist_solo[playlist_solo_SIZE]={GST_VIDEOTESTSRC,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 	int8_t playlist_solo_index = 1;
-	int8_t effect_solo = -1;
+	int8_t effect_solo = GST_VIDEOTESTSRC;
 
 	int8_t playlist_duo[playlist_duo_SIZE]={GST_NORMAL,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 	int8_t playlist_duo_index = 1;

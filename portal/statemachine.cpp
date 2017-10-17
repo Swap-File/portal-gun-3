@@ -23,7 +23,7 @@ void local_state_engine(int button, this_gun_struct& this_gun, other_gun_struct&
 		this_gun.initiator = false; //reset initiator
 		this_gun.state_solo = 0; //reset self state
 		this_gun.state_duo = 0; //reset local state
-		this_gun.mode = MODE_DUO;
+		//this_gun.mode = MODE_DUO;
 	}
 	else if(button == BUTTON_MODE_TOGGLE){
 		this_gun.initiator = false; //reset initiator

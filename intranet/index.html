@@ -3,7 +3,7 @@
 <head>
 <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
 <meta name="viewport" content="initial-scale=1, maximum-scale=1">
-<title>Portal Gun 2.0</title>
+<title>Portal Gun 3.0</title>
 <link rel="stylesheet" type="text/css" href="portalstyle.css">
 <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
 </head>
@@ -715,6 +715,7 @@ function update_data() {
 			var packet_counter = parseInt(res[30]);
 			if (isNaN(packet_counter) == true || packet_counter == last_packet_counter){
 				missed_packets++;
+				console.log("miss");
 			}else{
 				last_packet_counter = packet_counter;
 				missed_packets = Math.max(missed_packets-2,0);
