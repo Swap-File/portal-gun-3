@@ -438,9 +438,9 @@ static gboolean idle_loop (gpointer data) {
 		char buffer[buf_len];
 		
 		int characters_read = read(input_command_pipe, &buffer[buf_index], 1);
-		
-		if (characters_read == 0){ //done!
-			printf("Done.");
+		//printf("\n-%d-\n",characters_read);
+		if (characters_read <= 0){ //done!
+			//printf("Done.");
 			break; 
 		}else{
 			buf_index++;
@@ -474,7 +474,7 @@ static gboolean idle_loop (gpointer data) {
 			}
 		}
 	}
-	
+	//printf("\ncycle..\n");
 	if (movieisplaying){
 		if (video_mode_current >= GST_MOVIE_FIRST && video_mode_current <= GST_MOVIE_LAST ){
 			int index = video_mode_current - GST_MOVIE_FIRST;

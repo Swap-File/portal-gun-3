@@ -129,7 +129,8 @@ void i2creader_update(this_gun_struct& this_gun){
 	this_gun.accel[1] = i2c_accel[1];
 	this_gun.accel[2] = i2c_accel[2];
 	
-	this_gun.battery_level_pretty = (float)i2c_adc[0]  * 0.000902372;
+	this_gun.battery_level_pretty = this_gun.battery_level_pretty * .9 + .1 *(float)i2c_adc[1] * 0.00075;
+	//21600 = 16.1 v  16000  = 12.1v
 	this_gun.temperature_pretty =temperature_reading(i2c_adc[0]);
 }
 
