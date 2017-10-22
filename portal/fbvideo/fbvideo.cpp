@@ -167,8 +167,8 @@ int main(int argc, char *argv[]) {
 	
 	if(getenv("GORDON")){
 		strcpy(user_name, "Gordon");
-	}else if(getenv("Chell")){
-		strcpy(user_name, "CHELL");
+	}else if(getenv("CHELL")){
+		strcpy(user_name, "Chell");
 	}else{
 		strcpy(user_name, "UNKNOWN");
 	}

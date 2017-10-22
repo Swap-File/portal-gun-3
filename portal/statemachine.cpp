@@ -41,12 +41,12 @@ void local_state_engine(int button, this_gun_struct& this_gun, other_gun_struct&
 		if (this_gun.mode == MODE_DUO){
 			//projector modes
 			if(this_gun.state_duo == 0){
-				this_gun.mode = 1;
+				this_gun.state_duo = 1;
 			}else if(this_gun.state_duo == 1){
-				this_gun.mode = 2;
+				this_gun.state_duo = 2;
 				this_gun.initiator = true; 
 			}else if(this_gun.state_duo == 2 && this_gun.initiator == true){ //if leading the call, go through all modes
-				this_gun.mode = 3;
+				this_gun.state_duo = 3;
 			}else if(this_gun.state_duo == 2 && this_gun.initiator == false){  //answer an incoming call immediately and open portal on button press
 				this_gun.state_duo = 4;  
 			}else if(this_gun.state_duo == 4){ //open portal

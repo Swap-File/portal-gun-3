@@ -489,7 +489,7 @@ void model_board_redraw(GLuint video_texture, int frame){
 
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	draw_torus_vbo();
+	//draw_torus_vbo();
 	donut_texture_scrolling+=.05;
 	//glEnableClientState(GL_VERTEX_ARRAY);  
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
