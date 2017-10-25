@@ -484,7 +484,16 @@ static gboolean idle_loop (gpointer data) {
 				gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_PAUSED);
 				movieisplaying = false;
 			}
+			if (portal_mode_requested != AHRS_OPEN_ORANGE &&portal_mode_requested != AHRS_OPEN_BLUE ) {
+				printf("End EARLY!\n");
+				video_ended();
+				gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_PAUSED);
+				movieisplaying = false;
+			}
+			
 		}
+		
+		
 	}
 	
 	model_board_animate(accleration,portal_mode_requested);
@@ -505,8 +514,16 @@ static gboolean idle_loop (gpointer data) {
 		frames = 0;
 	}
 	
-	if (video_mode_requested != video_mode_current)	start_pipeline();
-	
+	if (video_mode_requested != video_mode_current)	{
+		if (video_mode_requested >= GST_MOVIE_FIRST &&  video_mode_requested <= GST_MOVIE_LAST){
+			if (portal_mode_requested == AHRS_OPEN_ORANGE || portal_mode_requested == AHRS_OPEN_BLUE ) { //wait until portal is opening to start video
+				start_pipeline();
+			}
+		}
+		else{ //immediately change for all other pipelines to allow as much preloading as possible
+			start_pipeline();
+		}
+	}
 	//return true to automatically have this function called again when gstreamer is idle.
 	return true;
 }
