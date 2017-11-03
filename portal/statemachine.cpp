@@ -97,7 +97,7 @@ void local_state_engine(int button, this_gun_struct& this_gun, other_gun_struct&
 	}
 
 	//other gun transitions
-	if (this_gun.state_solo == 0){
+	if (this_gun.mode == MODE_DUO){
 		if ((other_gun.state_previous >= 2 || other_gun.state_previous <= -2)  && other_gun.state == 0){
 			this_gun.state_duo = 0;
 		}
@@ -133,7 +133,7 @@ void local_state_engine(int button, this_gun_struct& this_gun, other_gun_struct&
 			}else{
 				this_gun.state_duo = 2;
 			}
-			this_gun.mode = 2;
+			this_gun.mode = MODE_DUO;
 			this_gun.state_solo = 0;
 		}
 	}

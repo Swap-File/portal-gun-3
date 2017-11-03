@@ -699,8 +699,9 @@ int main(int argc, char *argv[]){
 	//start the idle and main loops
 	loop = g_main_loop_new (NULL, FALSE);
 	gpointer data = NULL;
-	g_idle_add (idle_loop, data);
+	//g_idle_add (idle_loop, data);
 	//g_timeout_add (10,idle_loop ,pipeline); 
+	g_timeout_add_full ( G_PRIORITY_HIGH,6,idle_loop ,pipeline,NULL); 
 	g_main_loop_run (loop); //let gstreamer's GLib event loop take over
 	
 	glXMakeCurrent(dpy, None, NULL);
