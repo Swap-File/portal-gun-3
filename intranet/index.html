@@ -342,8 +342,8 @@ for(var i=0; i < playlist_duo_select.length; i++){
 
 menuselecter.value = "preview";
 
-if (location.host == "192.168.1.22"){gun_name_div.innerHTML = "Gordon";}
-else if (location.host == "192.168.1.23"){gun_name_div.innerHTML = "Chell";}
+if (location.host == "192.168.1.20"){gun_name_div.innerHTML = "Gordon";}
+else if (location.host == "192.168.1.21"){gun_name_div.innerHTML = "Chell";}
 else if (location.host.indexOf(":8022") > 0){gun_name_div.innerHTML = "Gordon";}
 else if (location.host.indexOf(":8023") > 0){gun_name_div.innerHTML = "Chell";}
 
@@ -524,19 +524,19 @@ function reinit_all(){
 }
 function menu(sel){
 	if (sel == "switch"){	
-		if (location.host == "192.168.1.23"){
-			window.location.href = 'http://192.168.1.22';
+		if (location.host == "192.168.1.21"){
+			window.location.href = 'http://192.168.1.20';
 		}
-		else if (location.host == "192.168.1.22"){
-			window.location.href = 'http://192.168.1.23';
+		else if (location.host == "192.168.1.20"){
+			window.location.href = 'http://192.168.1.21';
 		}
 		else if (location.host.indexOf(":8022") > 0){
 			var temp = location.host;
-			window.location.href = 'http://' + temp.replace(":8022", ":8023");
+			window.location.href = 'http://' + temp.replace(":8020", ":8021");
 		}
 		else if (location.host.indexOf(":8023") > 0){
 			var temp = location.host;
-			window.location.href = 'http://' + temp.replace(":8023", ":8022");
+			window.location.href = 'http://' + temp.replace(":8021", ":8020");
 		}
 		
 	}else{

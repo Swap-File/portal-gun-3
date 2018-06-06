@@ -4,7 +4,8 @@ shell_exec('sudo systemctl stop hostapd');
 sleep(1);
 
 $channel = (int)$_POST["channel"];
-echo($channel);
+if ($channel == 0)
+	$channel = (int)$_GET["channel"];
 
 switch ($channel) {
 case 165:

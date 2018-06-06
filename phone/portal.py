@@ -12,10 +12,10 @@ req_to_do = 0
 
 auth = ('', '')
 url_upload = 'https://swapfile.duckdns.org/portalguns/add.php'
-url_gordon_data ='http://192.168.1.22/tmp/portal.txt'
-url_chell_data ='http://192.168.1.23/tmp/portal.txt'
-url_gordon_image = 'http://192.168.1.22/tmp/snapshot.jpg'
-url_chell_image = 'http://192.168.1.23/tmp/snapshot.jpg'
+url_gordon_data ='http://192.168.1.20/tmp/portal.txt'
+url_chell_data ='http://192.168.1.21/tmp/portal.txt'
+url_gordon_image = 'http://192.168.1.20/tmp/snapshot.jpg'
+url_chell_image = 'http://192.168.1.21/tmp/snapshot.jpg'
 
 gordon_packet_id_last = -1
 chell_packet_id_last = -1
@@ -185,7 +185,7 @@ except:
 		for item in results:
 			print ("Trying Gordon at " + item)
 			try:
-				requests.get("http://" + item + ":8022/tmp/portal.txt",timeout=1)
+				requests.get("http://" + item + ":8020/tmp/portal.txt",timeout=1)
 			except:
 				print ("Gordon Failed")
 			else:
@@ -195,7 +195,7 @@ except:
 				
 			print ("Trying Chell at " + item)
 			try:
-				requests.get("http://" + item + ":8023/tmp/portal.txt",timeout=1)
+				requests.get("http://" + item + ":8021/tmp/portal.txt",timeout=1)
 			except:
 				print ("Chell Failed")
 			else:
@@ -205,19 +205,19 @@ except:
 		time.sleep(10)
 else:
 	print ("LAN Mode Active")
-	print ('Gordon: http://192.168.1.22')
-	print ('Chell: http://192.168.1.23')
+	print ('Gordon: http://192.168.1.20')
+	print ('Chell: http://192.168.1.21')
 	
 	
 
 if (ip != ""):
 	print ("Building URLs...")		
-	url_gordon_data ='http://' + ip + ':8022/tmp/portal.txt'
-	url_chell_data ='http://' + ip + ':8023/tmp/portal.txt'
-	url_gordon_image = 'http://' + ip + ':8022/tmp/snapshot.jpg'
-	url_chell_image = 'http://' + ip + ':8023/tmp/snapshot.jpg'
-	print ('Gordon: http://' + ip +':8022')
-	print ('Chell: http://' + ip +':8023')
+	url_gordon_data ='http://' + ip + ':8020/tmp/portal.txt'
+	url_chell_data ='http://' + ip + ':8021/tmp/portal.txt'
+	url_gordon_image = 'http://' + ip + ':8020/tmp/snapshot.jpg'
+	url_chell_image = 'http://' + ip + ':8021/tmp/snapshot.jpg'
+	print ('Gordon: http://' + ip +':8020')
+	print ('Chell: http://' + ip +':8021')
 
 print("Warming")
 upload_data(0)
