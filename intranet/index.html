@@ -99,8 +99,19 @@ Portal Type:
 <option value="GIF">GIF</option>
 <option value="PNG">PNG</option>
 </select>
+<br>
+<br>
+WiFi Channel:
+<select id="wifi_channel_select" onchange="wifi_channel_onchange(this)">
+<option value="-">-</option>
+<option value="36">36</option>
+<option value="44">44</option>
+<option value="149">149</option>
+<option value="157">157</option>
+<option value="165">165</option>
+</select>
 </div>
-<div  class="hidden_div" id="load_div"> 
+<div class="hidden_div" id="load_div"> 
 <br>
 <table>
 <tr>
@@ -645,6 +656,13 @@ function post_text(text){
 	request.open('POST', 'index_post.php', true);
 	request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 	request.send(text);
+}
+function wifi_channel_onchange(thing){
+	var number = parseInt(thing.value);
+	var request = new XMLHttpRequest();
+	request.open('POST', 'wifiap.php', true);
+	request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+	request.send("channel=" + number);
 }
 function ir_select_onchange(thing){
 	var number = parseInt(thing.value);
