@@ -75,8 +75,8 @@ void pipecontrol_setup(){
 		
 	system("LD_LIBRARY_PATH=/usr/local/lib mjpg_streamer -i 'input_file.so -f /var/www/html/tmp -n snapshot.jpg' -o 'output_http.so -w /usr/local/www' &");
 	
-	if(getenv("GORDON")) 		ping_fp = popen("ping 192.168.1.23", "r");
-	else if(getenv("CHELL")) 	ping_fp = popen("ping 192.168.1.22", "r");
+	if(getenv("GORDON")) 		ping_fp = popen("ping 192.168.3.21", "r");
+	else if(getenv("CHELL")) 	ping_fp = popen("ping 192.168.3.20", "r");
 	else {
 		printf("SET THE GORDON OR CHELL ENVIRONMENT VARIABLE!");
 		exit(1);
@@ -184,7 +184,7 @@ int read_web_pipe(this_gun_struct& this_gun){
 			
 			//ir stuff
 			if (tv[0] == 2 && results == 2) {
-				if (tv[1] >= 0 && tv[1] <= 255) this_gun.ir_pwm = tv[1];
+				if (tv[1] >= 0 && tv[1] <= 1024) this_gun.ir_pwm = tv[1];
 			}
 			//self playlist setting
 			else if (tv[0] == 3 && results == 11) {
@@ -269,8 +269,10 @@ void update_temp(float * temp){
 int io_update(const this_gun_struct& this_gun){
 	
 	pwmWrite (PIN_FAN_PWM,this_gun.fan_pwm);
-	pwmWrite (PIN_IR_PWM,this_gun.ir_pwm);
-		
+	
+	if (this_gun.state_duo < 0)	pwmWrite (PIN_IR_PWM,this_gun.ir_pwm);
+	else  						pwmWrite (PIN_IR_PWM,0);
+	
 	static uint_fast8_t primary_bucket = 0;
 	static uint_fast8_t alt_bucket = 0;
 	static uint_fast8_t mode_bucket = 0;

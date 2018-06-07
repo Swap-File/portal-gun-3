@@ -57,12 +57,12 @@
 <br>
 Nightvision Brightness:
 <select id="ir_select" onchange="ir_select_onchange(this)">
-<option value="256">?</option>
+<option value="1025">?</option>
+<option value="1024">1024</option>
 <option value="255">255</option>
 <option value="128">128</option>
 <option value="64">64</option>
 <option value="32">32</option>
-<option value="16">16</option>
 <option value="0">0</option>
 </select>
 <br>
@@ -344,8 +344,8 @@ menuselecter.value = "preview";
 
 if (location.host == "192.168.1.20"){gun_name_div.innerHTML = "Gordon";}
 else if (location.host == "192.168.1.21"){gun_name_div.innerHTML = "Chell";}
-else if (location.host.indexOf(":8022") > 0){gun_name_div.innerHTML = "Gordon";}
-else if (location.host.indexOf(":8023") > 0){gun_name_div.innerHTML = "Chell";}
+else if (location.host.indexOf(":8020") > 0){gun_name_div.innerHTML = "Gordon";}
+else if (location.host.indexOf(":8021") > 0){gun_name_div.innerHTML = "Chell";}
 
 
 update_data();
@@ -530,11 +530,11 @@ function menu(sel){
 		else if (location.host == "192.168.1.20"){
 			window.location.href = 'http://192.168.1.21';
 		}
-		else if (location.host.indexOf(":8022") > 0){
+		else if (location.host.indexOf(":8020") > 0){
 			var temp = location.host;
 			window.location.href = 'http://' + temp.replace(":8020", ":8021");
 		}
-		else if (location.host.indexOf(":8023") > 0){
+		else if (location.host.indexOf(":8021") > 0){
 			var temp = location.host;
 			window.location.href = 'http://' + temp.replace(":8021", ":8020");
 		}
@@ -666,7 +666,7 @@ function wifi_channel_onchange(thing){
 }
 function ir_select_onchange(thing){
 	var number = parseInt(thing.value);
-	if (number >= 0 && number <= 255){
+	if (number >= 0 && number <= 1024){
 		post_text("mode=2 " + number);
 	}	
 }
@@ -760,7 +760,7 @@ function update_data() {
 				if (ir_pwm_last != ir_pwm){
 					//top option is current setting
 					ir_select.options[0].text = ir_pwm;
-					ir_select.value = "256";
+					ir_select.value = "1025";
 					ir_pwm_last= ir_pwm;
 				}
 				

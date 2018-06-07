@@ -26,12 +26,12 @@ socklen_t srlen=sizeof(incoming_addr);
 void udpcontrol_setup(){
 	
 	if (getenv("GORDON")){
-		strcpy(my_ip, "192.168.1.22");
-		strcpy(dest_ip, "192.168.1.23");
+		strcpy(my_ip, "192.168.3.20");
+		strcpy(dest_ip, "192.168.3.21");
 	}
 	else if (getenv("CHELL")){
-		strcpy(my_ip, "192.168.1.23");
-		strcpy(dest_ip, "192.168.1.22");
+		strcpy(my_ip, "192.168.3.21");
+		strcpy(dest_ip, "192.168.3.20");
 	}
 	
 	printf("UDP_Control : My IP: %s\n",my_ip);

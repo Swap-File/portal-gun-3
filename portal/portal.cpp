@@ -86,10 +86,7 @@ int main(void){
 		//program code starts here
 		update_temp(&this_gun.coretemp);
 		update_ping(&this_gun.latency);
-		
-		if (this_gun.state_duo < 0)  this_gun.ir_pwm = 1024;
-		else  this_gun.ir_pwm = 0;
-	
+			
 		//read states from buttons
 		int button_event = BUTTON_NONE;	
 		button_event = io_update(this_gun);

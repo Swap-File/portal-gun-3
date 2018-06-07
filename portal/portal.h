@@ -29,7 +29,7 @@ struct this_gun_struct {
 	int8_t state_solo_previous = 0;
 	bool initiator = false; //Did this gun start the connection request?
 	uint32_t clock = 0;
-	int  ir_pwm = 0;
+	int  ir_pwm = 1024;
 	int  fan_pwm = 1024;
 	bool connected = false; 
 	
