@@ -5,7 +5,6 @@
 #include <gst/gst.h>
 #include <gst/gl/gl.h>
 #include <gst/gl/x11/gstgldisplay_x11.h>
-   
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -28,6 +27,8 @@
 
 #include "model_board/model_board.h"
 int parentpid = 0;
+int raspivid_PID = 0;
+
 int input_command_pipe;
 Display *dpy;
 Window win;
@@ -360,7 +361,7 @@ void start_pipeline(){
 	double start_time = current_time();
 	
 	//stop the old pipeline
-	if (GST_IS_ELEMENT(pipeline_active)) {
+	if (GST_IS_ELEMENT(pipeline_active) || video_mode_current == GST_RPICAMSRC) {
 		
 		//if we are leaving a audio effect mode 
 		if (video_mode_current >= GST_LIBVISUAL_FIRST && video_mode_current <= GST_LIBVISUAL_LAST){
@@ -380,10 +381,11 @@ void start_pipeline(){
 			}else{
 				printf("video HOT SWAP!\n\n");
 			}	
-			movieisplaying =false;
+			movieisplaying = false;
 		}
 		else if (video_mode_current == GST_RPICAMSRC ) {
-			gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_PAUSED);
+
+			kill(raspivid_PID,SIGHUP);  //stop the camera
 			printf("PAUSE RPICAM!\n\n");
 		}else{//null everything else	
 			printf("NULL THE REST!\n\n");
@@ -397,7 +399,7 @@ void start_pipeline(){
 		//find file pos and go there
 		int index = video_mode_requested - GST_MOVIE_FIRST;
 		seek_to_time(movie_start_times[index]);  
-		movieisplaying =true;
+		movieisplaying = true;
 		
 	}
 	else if (video_mode_requested >= GST_LIBVISUAL_FIRST && video_mode_requested <= GST_LIBVISUAL_LAST){
@@ -409,12 +411,17 @@ void start_pipeline(){
 	
 	//if we dont se the callbacks here, the bus request handler can do it
 	//but explicitly setting it seems to be required when swapping pipelines
-	gst_element_set_context (GST_ELEMENT (pipeline_active), ctxcontext);  			
-	gst_element_set_context (GST_ELEMENT (pipeline_active), x11context);		
-	
-	//start the show
-	gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_PLAYING);	
-	
+	if (video_mode_requested != GST_RPICAMSRC){
+		gst_element_set_context (GST_ELEMENT (pipeline_active), ctxcontext);  			
+		gst_element_set_context (GST_ELEMENT (pipeline_active), x11context);		
+
+		
+		//start the show
+		gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_PLAYING);	
+
+	}else{
+		kill(raspivid_PID,SIGCONT);  //start the camera
+	}
 	video_mode_current = video_mode_requested;
 	
 	printf("Pipeline %d changed to in %f seconds!\n",video_mode_current,current_time() - start_time);
@@ -609,33 +616,50 @@ int main(int argc, char *argv[]){
 	//I've noticed that if too many pipelines get destroyed (gst_object_unref) and recreated  gstreamer & x11 will eventually crash with context errors
 	//this can switch between pipelines in 5-20ms on a Pi3, which is quick enough for the human eye
 	
-	//test patterns
-	load_pipeline(GST_BLANK ,(char *)"videotestsrc pattern=2 ! video/x-raw,width=640,height=480,framerate=(fraction)30/1 ! queue ! glupload ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true");
-	load_pipeline(GST_VIDEOTESTSRC ,(char *)"videotestsrc ! video/x-raw,width=640,height=480,framerate=(fraction)30/1 ! queue ! glupload ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true");
-	load_pipeline(GST_VIDEOTESTSRC_CUBED ,(char *)"videotestsrc ! video/x-raw,width=640,height=480,framerate=(fraction)30/1 ! queue ! glupload ! glfiltercube ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true");
 
 
-	//camera launch 192.168.1.22 gordon    192.168.1.23 chell
-	if(getenv("GORDON")){
-		load_pipeline(GST_RPICAMSRC ,(char *)"rpicamsrc preview=0 ! image/jpeg,width=640,height=480,framerate=30/1 ! "
-		"queue max-size-time=50000000 leaky=upstream ! jpegparse ! tee name=t "
-		"t. ! queue ! rtpjpegpay ! udpsink host=192.168.3.21 port=9000 sync=false "
-		"t. ! queue ! rtpjpegpay ! udpsink host=127.0.0.1    port=8999 sync=false "
-		"t. ! queue ! jpegdec ! videorate ! video/x-raw,framerate=10/1 ! videoscale ! video/x-raw,width=400,height=240 ! videoflip method=3 ! jpegenc ! multifilesink location=/var/www/html/tmp/snapshot.jpg sync=false");
-	}else if(getenv("CHELL")){
-		load_pipeline(GST_RPICAMSRC ,(char *)"rpicamsrc preview=0 ! image/jpeg,width=640,height=480,framerate=30/1 ! "
-		"queue max-size-time=50000000 leaky=upstream ! jpegparse ! tee name=t "
-		"t. ! queue ! rtpjpegpay ! udpsink host=192.168.3.20 port=9000 sync=false "
-		"t. ! queue ! rtpjpegpay ! udpsink host=127.0.0.1    port=8999 sync=false "
-		"t. ! queue ! jpegdec ! videorate ! video/x-raw,framerate=10/1 ! videoscale ! video/x-raw,width=400,height=240 ! videoflip method=3 ! jpegenc ! multifilesink location=/var/www/html/tmp/snapshot.jpg  sync=false");
+
+
+
+
+		//camera launch 192.168.1.20 gordon    192.168.1.21 chell
+	if(getenv("GORDON") || getenv("CHELL")){
+
+
+
+
+
+
+
+
+
+
+
+		FILE *pidof_fp;
+		char tempbuf[100];
+		pidof_fp = popen("pidof -s gst-launch-1.0", "r");
+		fgets(tempbuf, 100, pidof_fp);
+		sscanf(tempbuf,"%d\n",&raspivid_PID);
+		printf("RaspiVid PID: %d\n",raspivid_PID);
+		fclose(pidof_fp);
+		
+		kill(raspivid_PID,SIGHUP);  //stop the camera
 	}
 	else {
 		printf("SET THE GORDON OR CHELL ENVIRONMENT VARIABLE!");
 		exit(1);
 	}
 	
+	
+	//test patterns
+	load_pipeline(GST_BLANK ,(char *)"videotestsrc pattern=2 ! video/x-raw,width=640,height=480,framerate=(fraction)30/1 ! queue ! glupload ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true");
+	load_pipeline(GST_VIDEOTESTSRC ,(char *)"videotestsrc ! video/x-raw,width=640,height=480,framerate=(fraction)30/1 ! queue ! glupload ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true");
+	load_pipeline(GST_VIDEOTESTSRC_CUBED ,(char *)"videotestsrc ! video/x-raw,width=640,height=480,framerate=(fraction)30/1 ! queue ! glupload ! glfiltercube ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true");
+	
 	//normal
 	load_pipeline(GST_NORMAL ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
+	
+
 	
 	//cpu effects
 	load_pipeline(GST_RADIOACTV    ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! radioactv     ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
@@ -649,7 +673,8 @@ int main(int argc, char *argv[]){
 	load_pipeline(GST_EDGETV       ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! edgetv        ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_STREAKTV     ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! streaktv      ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	
-	//gl effects  multicast-iface="wlan0"
+
+	//gl effects 
 	load_pipeline(GST_GLCUBE   ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! queue ! jpegdec ! glupload ! glcolorconvert ! glfiltercube      ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_GLMIRROR ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! queue ! jpegdec ! glupload ! glcolorconvert ! gleffects_mirror  ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_GLSQUEEZE,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! queue ! jpegdec ! glupload ! glcolorconvert ! gleffects_squeeze ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
@@ -674,7 +699,7 @@ int main(int argc, char *argv[]){
 	"glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! "
 	"glfilterapp name=grabtexture ! fakesink sync=false async=false");
 	
- 	//movie pipeline, has all videos as long long video, chapter start and end times stored in gstvideo.h
+	//movie pipeline, has all videos as long long video, chapter start and end times stored in gstvideo.h
 	//it doesnt work well to load and unload various input files due to the 
 	//audio format must match the visual input stuff, otherwise the I2S Soundcard will get slow and laggy when switching formats! 
 	load_pipeline(GST_MOVIE_FIRST ,(char *) "filesrc location=/home/pi/assets/movies/all.mp4 ! qtdemux name=dmux "
@@ -694,11 +719,14 @@ int main(int argc, char *argv[]){
 	outputpads[4] = gst_element_get_static_pad(outputselector,"src_4");
 	outputpads[5] = gst_element_get_static_pad(outputselector,"src_5");
 
+	
+
+	
 	model_board_init();
 	
 	//start the idle and main loops
 	loop = g_main_loop_new (NULL, FALSE);
-	gpointer data = NULL;
+	//gpointer data = NULL;
 	//g_idle_add (idle_loop, data);
 	//g_timeout_add (10,idle_loop ,pipeline); 
 	g_timeout_add_full ( G_PRIORITY_HIGH,6,idle_loop ,pipeline,NULL); 

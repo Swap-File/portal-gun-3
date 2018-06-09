@@ -635,6 +635,10 @@ LTLIBOBJS
 LIBOBJS
 GST_PLUGIN_LDFLAGS
 plugindir
+BUILD_GST_WEBRTC_EXAMPLE_FALSE
+BUILD_GST_WEBRTC_EXAMPLE_TRUE
+GST_WEBRTC_EXAMPLE_LIBS
+GST_WEBRTC_EXAMPLE_CFLAGS
 GST_LIBS
 GST_CFLAGS
 PKG_CONFIG_LIBDIR
@@ -791,7 +795,9 @@ PKG_CONFIG
 PKG_CONFIG_PATH
 PKG_CONFIG_LIBDIR
 GST_CFLAGS
-GST_LIBS'
+GST_LIBS
+GST_WEBRTC_EXAMPLE_CFLAGS
+GST_WEBRTC_EXAMPLE_LIBS'
 
 
 # Initialize some variables set by options.
@@ -1469,6 +1475,10 @@ Some influential environment variables:
               path overriding pkg-config's built-in search path
   GST_CFLAGS  C compiler flags for GST, overriding pkg-config
   GST_LIBS    linker flags for GST, overriding pkg-config
+  GST_WEBRTC_EXAMPLE_CFLAGS
+              C compiler flags for GST_WEBRTC_EXAMPLE, overriding pkg-config
+  GST_WEBRTC_EXAMPLE_LIBS
+              linker flags for GST_WEBRTC_EXAMPLE, overriding pkg-config
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -12572,6 +12582,86 @@ $as_echo "yes" >&6; }
 
 fi
 
+
+pkg_failed=no
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for GST_WEBRTC_EXAMPLE" >&5
+$as_echo_n "checking for GST_WEBRTC_EXAMPLE... " >&6; }
+
+if test -n "$GST_WEBRTC_EXAMPLE_CFLAGS"; then
+    pkg_cv_GST_WEBRTC_EXAMPLE_CFLAGS="$GST_WEBRTC_EXAMPLE_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \" gstreamer-sdp-1.0 gstreamer-webrtc-1.0 libsoup-2.4 >= 2.50 json-glib-1.0 \""; } >&5
+  ($PKG_CONFIG --exists --print-errors " gstreamer-sdp-1.0 gstreamer-webrtc-1.0 libsoup-2.4 >= 2.50 json-glib-1.0 ") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_GST_WEBRTC_EXAMPLE_CFLAGS=`$PKG_CONFIG --cflags " gstreamer-sdp-1.0 gstreamer-webrtc-1.0 libsoup-2.4 >= 2.50 json-glib-1.0 " 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$GST_WEBRTC_EXAMPLE_LIBS"; then
+    pkg_cv_GST_WEBRTC_EXAMPLE_LIBS="$GST_WEBRTC_EXAMPLE_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \" gstreamer-sdp-1.0 gstreamer-webrtc-1.0 libsoup-2.4 >= 2.50 json-glib-1.0 \""; } >&5
+  ($PKG_CONFIG --exists --print-errors " gstreamer-sdp-1.0 gstreamer-webrtc-1.0 libsoup-2.4 >= 2.50 json-glib-1.0 ") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_GST_WEBRTC_EXAMPLE_LIBS=`$PKG_CONFIG --libs " gstreamer-sdp-1.0 gstreamer-webrtc-1.0 libsoup-2.4 >= 2.50 json-glib-1.0 " 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        GST_WEBRTC_EXAMPLE_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs " gstreamer-sdp-1.0 gstreamer-webrtc-1.0 libsoup-2.4 >= 2.50 json-glib-1.0 " 2>&1`
+        else
+	        GST_WEBRTC_EXAMPLE_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs " gstreamer-sdp-1.0 gstreamer-webrtc-1.0 libsoup-2.4 >= 2.50 json-glib-1.0 " 2>&1`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$GST_WEBRTC_EXAMPLE_PKG_ERRORS" >&5
+
+	HAVE_GST_WEBRTC=no
+elif test $pkg_failed = untried; then
+     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+	HAVE_GST_WEBRTC=no
+else
+	GST_WEBRTC_EXAMPLE_CFLAGS=$pkg_cv_GST_WEBRTC_EXAMPLE_CFLAGS
+	GST_WEBRTC_EXAMPLE_LIBS=$pkg_cv_GST_WEBRTC_EXAMPLE_LIBS
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+	HAVE_GST_WEBRTC=yes
+fi
+ if test "x$HAVE_GST_WEBRTC" = "xyes"; then
+  BUILD_GST_WEBRTC_EXAMPLE_TRUE=
+  BUILD_GST_WEBRTC_EXAMPLE_FALSE='#'
+else
+  BUILD_GST_WEBRTC_EXAMPLE_TRUE='#'
+  BUILD_GST_WEBRTC_EXAMPLE_FALSE=
+fi
+
+
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking to see if compiler understands -Wall" >&5
 $as_echo_n "checking to see if compiler understands -Wall... " >&6; }
 save_CFLAGS="$CFLAGS"
@@ -12748,6 +12838,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${am__fastdepCC_TRUE}" && test -z "${am__fastdepCC_FALSE}"; then
   as_fn_error $? "conditional \"am__fastdepCC\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${BUILD_GST_WEBRTC_EXAMPLE_TRUE}" && test -z "${BUILD_GST_WEBRTC_EXAMPLE_FALSE}"; then
+  as_fn_error $? "conditional \"BUILD_GST_WEBRTC_EXAMPLE\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 

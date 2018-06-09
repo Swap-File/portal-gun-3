@@ -89,7 +89,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 noinst_PROGRAMS = test-color-balance$(EXEEXT) \
-	test-orientation$(EXEEXT)
+	test-orientation$(EXEEXT) $(am__EXEEXT_1)
 subdir = examples
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -100,6 +100,7 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
+@BUILD_GST_WEBRTC_EXAMPLE_TRUE@am__EXEEXT_1 = webrtc-unidirectional-h264$(EXEEXT)
 PROGRAMS = $(noinst_PROGRAMS)
 am_test_color_balance_OBJECTS = test_color_balance.$(OBJEXT)
 test_color_balance_OBJECTS = $(am_test_color_balance_OBJECTS)
@@ -114,6 +115,15 @@ am_test_orientation_OBJECTS = test_orientation.$(OBJEXT)
 test_orientation_OBJECTS = $(am_test_orientation_OBJECTS)
 test_orientation_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1)
+am_webrtc_unidirectional_h264_OBJECTS = webrtc_unidirectional_h264-webrtc-unidirectional-h264.$(OBJEXT)
+webrtc_unidirectional_h264_OBJECTS =  \
+	$(am_webrtc_unidirectional_h264_OBJECTS)
+webrtc_unidirectional_h264_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
+webrtc_unidirectional_h264_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(webrtc_unidirectional_h264_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
+	$(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -148,9 +158,11 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(test_color_balance_SOURCES) $(test_orientation_SOURCES)
+SOURCES = $(test_color_balance_SOURCES) $(test_orientation_SOURCES) \
+	$(webrtc_unidirectional_h264_SOURCES)
 DIST_SOURCES = $(test_color_balance_SOURCES) \
-	$(test_orientation_SOURCES)
+	$(test_orientation_SOURCES) \
+	$(webrtc_unidirectional_h264_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -207,6 +219,8 @@ GREP = @GREP@
 GST_CFLAGS = @GST_CFLAGS@
 GST_LIBS = @GST_LIBS@
 GST_PLUGIN_LDFLAGS = @GST_PLUGIN_LDFLAGS@
+GST_WEBRTC_EXAMPLE_CFLAGS = @GST_WEBRTC_EXAMPLE_CFLAGS@
+GST_WEBRTC_EXAMPLE_LIBS = @GST_WEBRTC_EXAMPLE_LIBS@
 HAVE_PKGCONFIG = @HAVE_PKGCONFIG@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
@@ -314,6 +328,8 @@ AM_CFLAGS = \
     -Wextra \
     -Werror
 
+@BUILD_GST_WEBRTC_EXAMPLE_FALSE@WEBRTC_EXAMPLE = 
+@BUILD_GST_WEBRTC_EXAMPLE_TRUE@WEBRTC_EXAMPLE = webrtc-unidirectional-h264
 test_color_balance_SOURCES = test_color_balance.c
 test_color_balance_LDADD = \
     $(GST_LIBS) \
@@ -324,6 +340,9 @@ test_orientation_LDADD = \
     $(GST_LIBS) \
     $(RPI_LIBFLAGS)
 
+webrtc_unidirectional_h264_SOURCES = webrtc-unidirectional-h264.c
+webrtc_unidirectional_h264_CFLAGS = $(GST_WEBRTC_EXAMPLE_CFLAGS)
+webrtc_unidirectional_h264_LDADD = $(GST_WEBRTC_EXAMPLE_LIBS) $(GST_LIBS) $(RPI_LIBFLAGS)
 all: all-am
 
 .SUFFIXES:
@@ -375,6 +394,10 @@ test-orientation$(EXEEXT): $(test_orientation_OBJECTS) $(test_orientation_DEPEND
 	@rm -f test-orientation$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_orientation_OBJECTS) $(test_orientation_LDADD) $(LIBS)
 
+webrtc-unidirectional-h264$(EXEEXT): $(webrtc_unidirectional_h264_OBJECTS) $(webrtc_unidirectional_h264_DEPENDENCIES) $(EXTRA_webrtc_unidirectional_h264_DEPENDENCIES) 
+	@rm -f webrtc-unidirectional-h264$(EXEEXT)
+	$(AM_V_CCLD)$(webrtc_unidirectional_h264_LINK) $(webrtc_unidirectional_h264_OBJECTS) $(webrtc_unidirectional_h264_LDADD) $(LIBS)
+
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 
@@ -383,6 +406,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_color_balance.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_orientation.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/webrtc_unidirectional_h264-webrtc-unidirectional-h264.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -407,6 +431,20 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
+
+webrtc_unidirectional_h264-webrtc-unidirectional-h264.o: webrtc-unidirectional-h264.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(webrtc_unidirectional_h264_CFLAGS) $(CFLAGS) -MT webrtc_unidirectional_h264-webrtc-unidirectional-h264.o -MD -MP -MF $(DEPDIR)/webrtc_unidirectional_h264-webrtc-unidirectional-h264.Tpo -c -o webrtc_unidirectional_h264-webrtc-unidirectional-h264.o `test -f 'webrtc-unidirectional-h264.c' || echo '$(srcdir)/'`webrtc-unidirectional-h264.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/webrtc_unidirectional_h264-webrtc-unidirectional-h264.Tpo $(DEPDIR)/webrtc_unidirectional_h264-webrtc-unidirectional-h264.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='webrtc-unidirectional-h264.c' object='webrtc_unidirectional_h264-webrtc-unidirectional-h264.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(webrtc_unidirectional_h264_CFLAGS) $(CFLAGS) -c -o webrtc_unidirectional_h264-webrtc-unidirectional-h264.o `test -f 'webrtc-unidirectional-h264.c' || echo '$(srcdir)/'`webrtc-unidirectional-h264.c
+
+webrtc_unidirectional_h264-webrtc-unidirectional-h264.obj: webrtc-unidirectional-h264.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(webrtc_unidirectional_h264_CFLAGS) $(CFLAGS) -MT webrtc_unidirectional_h264-webrtc-unidirectional-h264.obj -MD -MP -MF $(DEPDIR)/webrtc_unidirectional_h264-webrtc-unidirectional-h264.Tpo -c -o webrtc_unidirectional_h264-webrtc-unidirectional-h264.obj `if test -f 'webrtc-unidirectional-h264.c'; then $(CYGPATH_W) 'webrtc-unidirectional-h264.c'; else $(CYGPATH_W) '$(srcdir)/webrtc-unidirectional-h264.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/webrtc_unidirectional_h264-webrtc-unidirectional-h264.Tpo $(DEPDIR)/webrtc_unidirectional_h264-webrtc-unidirectional-h264.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='webrtc-unidirectional-h264.c' object='webrtc_unidirectional_h264-webrtc-unidirectional-h264.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(webrtc_unidirectional_h264_CFLAGS) $(CFLAGS) -c -o webrtc_unidirectional_h264-webrtc-unidirectional-h264.obj `if test -f 'webrtc-unidirectional-h264.c'; then $(CYGPATH_W) 'webrtc-unidirectional-h264.c'; else $(CYGPATH_W) '$(srcdir)/webrtc-unidirectional-h264.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
