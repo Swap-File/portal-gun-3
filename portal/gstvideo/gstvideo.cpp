@@ -558,7 +558,9 @@ int main(int argc, char *argv[]){
 	fcntl(input_command_pipe, F_SETFL, fcntl(input_command_pipe, F_GETFL, 0) | O_NONBLOCK);
 	
 	/* Initialize X11 */
-	unsigned int winWidth = 720, winHeight = 480;
+	//unsigned int winWidth = 720, winHeight = 480;
+	unsigned int winWidth = 1280, winHeight = 720;
+	
 	int x = 0, y = 0;
 
 	char *dpyName = NULL;
@@ -615,26 +617,9 @@ int main(int argc, char *argv[]){
 	//preload all pipelines we will be switching between.  This allows faster switching than destroying and recrearting the pipelines
 	//I've noticed that if too many pipelines get destroyed (gst_object_unref) and recreated  gstreamer & x11 will eventually crash with context errors
 	//this can switch between pipelines in 5-20ms on a Pi3, which is quick enough for the human eye
-	
-
-
-
-
-
 
 		//camera launch 192.168.1.20 gordon    192.168.1.21 chell
 	if(getenv("GORDON") || getenv("CHELL")){
-
-
-
-
-
-
-
-
-
-
-
 		FILE *pidof_fp;
 		char tempbuf[100];
 		pidof_fp = popen("pidof -s gst-launch-1.0", "r");
@@ -649,8 +634,7 @@ int main(int argc, char *argv[]){
 		printf("SET THE GORDON OR CHELL ENVIRONMENT VARIABLE!");
 		exit(1);
 	}
-	
-	
+		
 	//test patterns
 	load_pipeline(GST_BLANK ,(char *)"videotestsrc pattern=2 ! video/x-raw,width=640,height=480,framerate=(fraction)30/1 ! queue ! glupload ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true");
 	load_pipeline(GST_VIDEOTESTSRC ,(char *)"videotestsrc ! video/x-raw,width=640,height=480,framerate=(fraction)30/1 ! queue ! glupload ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true");
@@ -658,9 +642,7 @@ int main(int argc, char *argv[]){
 	
 	//normal
 	load_pipeline(GST_NORMAL ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
-	
-
-	
+		
 	//cpu effects
 	load_pipeline(GST_RADIOACTV    ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! radioactv     ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_REVTV        ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! revtv         ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
@@ -697,7 +679,7 @@ int main(int argc, char *argv[]){
 	"audioin. ! goom2k1            ! videosink. "
 	"funnel name=videosink ! video/x-raw,width=320,height=240,framerate=30/1 ! queue ! "
 	"glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! "
-	"glfilterapp name=grabtexture ! fakesink sync=false async=false");
+	"glfilterapp name=grabtexture ! fakesink sync=true async=false");
 	
 	//movie pipeline, has all videos as long long video, chapter start and end times stored in gstvideo.h
 	//it doesnt work well to load and unload various input files due to the 
@@ -719,7 +701,6 @@ int main(int argc, char *argv[]){
 	outputpads[4] = gst_element_get_static_pad(outputselector,"src_4");
 	outputpads[5] = gst_element_get_static_pad(outputselector,"src_5");
 
-	
 
 	
 	model_board_init();

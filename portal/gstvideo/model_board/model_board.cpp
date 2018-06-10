@@ -355,7 +355,7 @@ void model_board_init(void)
 	video_quad_vertex_list = glGenLists( 1 );
 	glNewList( video_quad_vertex_list, GL_COMPILE );
 	#define VIDEO_DEPTH -0.003
-	#define VIDEO_SCALE 11.6
+	#define VIDEO_SCALE 13.8
 	glBegin( GL_QUADS ); // 1.4 is slightly over 4/3 4:3 ratio 640/480
 	glTexCoord2f( 0.0f, 0.0f );	glVertex3f( -VIDEO_SCALE * 1.4, VIDEO_SCALE,VIDEO_DEPTH);//top left
 	glTexCoord2f( 0.0f, 1.0f ); glVertex3f( -VIDEO_SCALE * 1.4,-VIDEO_SCALE,VIDEO_DEPTH);//bottom left
@@ -435,7 +435,7 @@ void model_board_redraw(GLuint video_texture, int frame){
 	//EVENT HORIZON QUAD
 	glPushMatrix(); //save positions pre-rotation
 	
-	glScalef(1.0*720/480,1.0,1.0);  //stretch portal to an oval
+	glScalef(1.0*1280/720,.96,1.0);  //stretch portal to an oval
 	
 	//base event horizon texture
 	if      (frame == AHRS_OPEN_BLUE   || frame == AHRS_CLOSED_BLUE)   glBindTexture(GL_TEXTURE_2D, blue_0);
@@ -461,7 +461,7 @@ void model_board_redraw(GLuint video_texture, int frame){
 	else if (frame == AHRS_OPEN_ORANGE || frame == AHRS_CLOSED_ORANGE) glBindTexture(GL_TEXTURE_2D, texture_orange);
 
 	glColor4f(1.0,1.0,1.0,1.0); //portal texture is not transparent
-	glScalef(1.0*720/480,1.0,1.0);  //stretch portal to an oval
+	glScalef(1.0*1280/720,.96,1.0);  //stretch portal to an oval
 	glRotatef(portal_spin, 0, 0, 1); //make it spin
 	glCallList(portal_vertex_list);
 	
