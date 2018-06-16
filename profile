@@ -21,18 +21,25 @@ if [ -d "$HOME/bin" ] ; then
     PATH="$HOME/bin:$PATH"
 fi
 
+if [ -z "$(ifconfig | grep wlan0)" ]
+then
+    echo "wlan0 is down - rebooting in  10 sec"
+	sleep 10
+    sudo reboot
+else
+    echo "wlan0 is up"
+fi
+
 if [ "$(pidof portal)" ]
 then
-	echo "Gordon is running already!"
+	echo "Portal is running already!"
 else
-   export GORDON="1"
-
+	export GORDON="1"
 	sudo sysctl -w net.ipv4.ip_forward=1
-	sudo iptables -t nat -A PREROUTING -i bnep0 -p tcp --dport 8020 -j DNAT --to-destination 192.168.1.20:80
-	sudo iptables -t nat -A PREROUTING -i bnep0 -p tcp --dport 8021 -j DNAT --to-destination 192.168.1.21:80
-	sudo iptables -t nat -A PREROUTING -i bnep0 -p tcp --dport 8022 -j DNAT --to-destination 192.168.1.22:80
-	sudo iptables -t nat -A PREROUTING -i bnep0 -p tcp --dport 8023 -j DNAT --to-destination 192.168.1.23:80
+	sudo iptables -t nat -A PREROUTING -i bnep0 -p tcp --dport 8020 -j DNAT --to-destination 192.168.3.20:80
+	sudo iptables -t nat -A PREROUTING -i bnep0 -p tcp --dport 8021 -j DNAT --to-destination 192.168.3.21:80
 	sudo iptables -t nat -A POSTROUTING -j MASQUERADE
+	sudo ifconfig wlan0 192.168.3.20
 	cd /home/pi/portal
 	sudo ./portal
 fi
