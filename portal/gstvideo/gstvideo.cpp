@@ -654,7 +654,6 @@ int main(int argc, char *argv[]){
 	load_pipeline(GST_RIPPLETV     ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! rippletv      ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_EDGETV       ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! edgetv        ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_STREAKTV     ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! streaktv      ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
-	
 
 	//gl effects 
 	load_pipeline(GST_GLCUBE   ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! queue ! jpegdec ! glupload ! glcolorconvert ! glfiltercube      ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
@@ -686,8 +685,8 @@ int main(int argc, char *argv[]){
 	//audio format must match the visual input stuff, otherwise the I2S Soundcard will get slow and laggy when switching formats! 
 	load_pipeline(GST_MOVIE_FIRST ,(char *) "filesrc location=/home/pi/assets/movies/all.mp4 ! qtdemux name=dmux "
 	"dmux.video_0 ! queue ! avdec_h264 ! queue ! videoconvert ! "
-	"glupload ! glcolorscale ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false async=false "
-	"dmux.audio_0 ! queue ! aacparse ! avdec_aac ! audioconvert ! audio/x-raw,layout=interleaved,rate=48000,format=S32LE,channels=2 ! alsasink sync=false async=false device=dmix");
+	"glupload ! glcolorscale ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true async=false "
+	"dmux.audio_0 ! queue ! aacparse ! avdec_aac ! audioconvert ! audio/x-raw,layout=interleaved,rate=48000,format=S32LE,channels=2 ! alsasink sync=true async=false device=dmix");
 
 	//save the output pads from the visualization pipelines
 	//get the output-selector element

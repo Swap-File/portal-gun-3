@@ -355,12 +355,13 @@ void model_board_init(void)
 	video_quad_vertex_list = glGenLists( 1 );
 	glNewList( video_quad_vertex_list, GL_COMPILE );
 	#define VIDEO_DEPTH -0.003
-	#define VIDEO_SCALE 13.8
-	glBegin( GL_QUADS ); // 1.4 is slightly over 4/3 4:3 ratio 640/480
-	glTexCoord2f( 0.0f, 0.0f );	glVertex3f( -VIDEO_SCALE * 1.4, VIDEO_SCALE,VIDEO_DEPTH);//top left
-	glTexCoord2f( 0.0f, 1.0f ); glVertex3f( -VIDEO_SCALE * 1.4,-VIDEO_SCALE,VIDEO_DEPTH);//bottom left
-	glTexCoord2f( 1.0f, 1.0f );	glVertex3f(  VIDEO_SCALE * 1.4,-VIDEO_SCALE,VIDEO_DEPTH);//bottom right
-	glTexCoord2f( 1.0f, 0.0f );	glVertex3f(  VIDEO_SCALE * 1.4, VIDEO_SCALE,VIDEO_DEPTH);//top right
+	#define VIDEO_SCALE 13.8  
+	glBegin( GL_QUADS ); // 1.4 is slightly over 4/3 4:3 ratio 640/480 
+	glTexCoord2f( 0.0f, 0.0f );	glVertex3f(  VIDEO_SCALE * 1.4,-VIDEO_SCALE,VIDEO_DEPTH);//top left
+	glTexCoord2f( 0.0f, 1.0f ); glVertex3f(  VIDEO_SCALE * 1.4, VIDEO_SCALE,VIDEO_DEPTH);//bottom left
+	glTexCoord2f( 1.0f, 1.0f );	glVertex3f( -VIDEO_SCALE * 1.4, VIDEO_SCALE,VIDEO_DEPTH);//bottom right
+	glTexCoord2f( 1.0f, 0.0f );	glVertex3f( -VIDEO_SCALE * 1.4,-VIDEO_SCALE,VIDEO_DEPTH);//top right
+	
 	glEnd();
 	glEndList();
 
