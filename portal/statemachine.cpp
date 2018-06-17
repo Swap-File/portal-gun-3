@@ -23,16 +23,16 @@ void local_state_engine(int button, this_gun_struct& this_gun, other_gun_struct&
 		this_gun.initiator = false; //reset initiator
 		this_gun.state_solo = 0; //reset self state
 		this_gun.state_duo = 0; //reset local state
-		//this_gun.mode = MODE_DUO;
+		this_gun.mode = MODE_DUO; //reset to duo mode for common use case
 	}
 	else if(button == BUTTON_MODE_TOGGLE){
 		this_gun.initiator = false; //reset initiator
-		this_gun.state_solo = 0; //reset self state
-		this_gun.state_duo = 0; //reset local state
-		if (this_gun.mode == MODE_DUO){
-			this_gun.mode = MODE_SOLO;
-		}else if (this_gun.mode == MODE_SOLO){
-			this_gun.mode = MODE_DUO;
+		if (this_gun.state_solo == 0 && this_gun.state_duo == 0){//only allow mode toggle when in mode zero
+			if (this_gun.mode == MODE_DUO){
+				this_gun.mode = MODE_SOLO;
+			}else if (this_gun.mode == MODE_SOLO){
+				this_gun.mode = MODE_DUO;
+			}
 		}
 			
 		//TODO: add code from V2: (button == BUTTON_BOTH_LONG_ORANGE){  and (button == BUTTON_BOTH_LONG_BLUE){
@@ -49,10 +49,8 @@ void local_state_engine(int button, this_gun_struct& this_gun, other_gun_struct&
 				this_gun.state_duo = 3;
 			}else if(this_gun.state_duo == 2 && this_gun.initiator == false){  //answer an incoming call immediately and open portal on button press
 				this_gun.state_duo = 4;  
-			}else if(this_gun.state_duo == 4){ //open portal
-				this_gun.state_duo = 5;
-			}else if(this_gun.state_duo == 5){ //go back to closed portal for effect change
-				this_gun.state_duo = 4;  
+			}else if(this_gun.state_duo == 5){ //open portal
+				this_gun.state_duo = 4;
 			}
 			//camera modes
 			else if (this_gun.state_duo == -1){
@@ -69,11 +67,11 @@ void local_state_engine(int button, this_gun_struct& this_gun, other_gun_struct&
 			if(this_gun.state_solo >= 0 && this_gun.state_solo < 4){
 				this_gun.state_solo++;
 			}else if(this_gun.state_solo == 4){
-				this_gun.state_solo = 3;
+				this_gun.state_solo = 3; //possibly move this to alt fire for consistency?  But then solo color change needs to be moved
 			}else if(this_gun.state_solo < 0 && this_gun.state_solo > -4){
 				this_gun.state_solo--;
 			}else if(this_gun.state_solo == -4){
-				this_gun.state_solo = -3;
+				this_gun.state_solo = -3; //possibly move this to alt fire for consistency? But then solo color change needs to be moved
 			}		
 		}
 	}
@@ -84,7 +82,9 @@ void local_state_engine(int button, this_gun_struct& this_gun, other_gun_struct&
 			}
 			else if (this_gun.state_duo == 0){ //start duo camera mode
 				this_gun.state_duo = -1;
-			} 
+			}else if(this_gun.state_duo == 4){ //go back to closed portal for effect change 
+				this_gun.state_duo = 5;  //moved to alt fire from primary to prevent mode overrun when quickly tapping fire
+			}
 		}else if (this_gun.mode == MODE_SOLO){
 			if(this_gun.state_solo == 0){ //blue solo portal open
 				this_gun.state_solo = -1;
