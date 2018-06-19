@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
 <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
 <meta name="viewport" content="initial-scale=1, maximum-scale=1">
-<title>Portal Guns 3.0 Beta</title>
+<title>Portal Guns 3.1</title>
 <link rel="stylesheet" type="text/css" href="portalstyle.css">
 <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
 <link rel="stylesheet" type="text/css" href="datetimepicker/jquery.datetimepicker.css"/>
@@ -26,8 +26,9 @@
 <li><a href="https://github.com/Swap-File/portal-gun-3"><i class="fa fa-code fa-fw"></i> View Code</a></li>
 <li><a href="preview.html"><i class="fa fa-wrench fa-fw"></i> Effects</a></li>
 <li><a href="state1.png"><i class="fa fa-wrench fa-fw"></i> States</a></li>
-<li><a href="http://192.168.1.22"><i class="fa fa-wrench fa-fw"></i> Gordon</a></li>
-<li><a href="http://192.168.1.23"><i class="fa fa-wrench fa-fw"></i> Chell</a></li>
+<li><a href="sim.html"><i class="fa fa-wrench fa-fw"></i> Simulator</a></li>
+<li><a href="http://192.168.1.20"><i class="fa fa-wrench fa-fw"></i> Gordon (LAN)</a></li>
+<li><a href="http://192.168.1.21"><i class="fa fa-wrench fa-fw"></i> Chell (LAN)</a></li>
 </ul>
 </li>
 </ul>
@@ -44,7 +45,7 @@
 <div id="loading_txt">Loading</div>
 </div>
 
-<div id="titletext">Portal Guns 3.&#946;</div>
+<div id="titletext">Portal Guns 3.1</div>
 <div id="subtext">Live Feed</div>
 <div id="mainpage">
 
@@ -103,7 +104,7 @@ $(document).ready(function() {
 	$(".menu li:eq(5)").hide();
 	$(".menu li:eq(6)").hide();
 	$(".menu li:eq(7)").hide();
-	
+	$(".menu li:eq(8)").hide();
 	//check for SVG Transform support, if none, fallback to GIF
 	getSupportedTransform();
 	//load live data  
@@ -189,7 +190,7 @@ function running_man_click(){
 		$(".menu li:eq(5)").show();
 		$(".menu li:eq(6)").show();
 		$(".menu li:eq(7)").show();
-		
+		$(".menu li:eq(8)").show();
 		suppress_menu_close = 1;
 		$('#menu_icon').trigger('click');
 	}
