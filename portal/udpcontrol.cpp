@@ -104,7 +104,16 @@ int udp_receive_state(int * state, uint32_t * offset){
 			//int ipbytes[4];
 			//sscanf( inet_ntoa(incoming_addr.sin_addr), "%3u.%3u.%3u.%3u", &ipbytes[3], &ipbytes[2], &ipbytes[1], &ipbytes[0]);
 			//printf("%d %d %d %d\n", ipbytes[0] , ipbytes[1] , ipbytes[2], ipbytes[3]);
-			sscanf( buf, "%d %d",state,offset);
+			uint32_t temp_offset;
+			int temp_state;
+			sscanf( buf, "%d %d",&temp_state,&temp_offset);
+			if (temp_offset > *offset){
+				*offset = temp_offset;
+				*state = temp_state;
+			}else{
+				printf("Going back in time?\n");
+				return -1;
+			}
 		}
 	}
 	return n;
