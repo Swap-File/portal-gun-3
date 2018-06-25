@@ -131,7 +131,7 @@ static gboolean idle_loop (gpointer data) {
 			
 			g_object_set (outputfb, "sync",  true, NULL);
 			
-			char const * con_good = "Sycned";
+			char const * con_good = "Synced";
 			char const * con_bad ="Sync Err";
 			
 			char * connection_status = (char *)con_bad; //assume bad
