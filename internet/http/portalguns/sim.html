@@ -64,26 +64,24 @@ var MODE_SOLO = 1;
 var MODE_DUO = 2;
 
 
-var gordon = {  'mode':  MODE_DUO, 'state_solo': 0 ,'state_duo': 0, 'state': 0,'initiator': false , 'state_previous': 0,  'special': false};
-var chell = {  'mode':  MODE_DUO, 'state_solo': 0 ,'state_duo': 0, 'state': 0,'initiator': false, 'state_previous': 0,  'special': false };
+var gordon = {  'mode':  MODE_DUO, 'state_solo': 0 ,'state_duo': 0, 'state': 0, 'state_previous': 0};
+var chell = {  'mode':  MODE_DUO, 'state_solo': 0 ,'state_duo': 0, 'state': 0, 'state_previous': 0};
 
 update();
 
 //state engine code copy/pasted out of C core logic
 function button(this_gun,other_gun,button){
 
-
 	this_gun.state_previous = this_gun.state_duo;
 
+	
 	//button event transitions
 	if( button == 103){
-		this_gun.initiator = false; //reset initiator
 		this_gun.state_solo = 0; //reset self state
 		this_gun.state_duo = 0; //reset local state
 		this_gun.mode = MODE_DUO; //reset to duo mode for common use case
 	}
 	else if(button == 102){
-		this_gun.initiator = false; //reset initiator
 		if (this_gun.state_solo == 0 && this_gun.state_duo == 0){//only allow mode toggle when in mode zero
 			if (this_gun.mode == MODE_DUO){
 				this_gun.mode = MODE_SOLO;
@@ -92,7 +90,7 @@ function button(this_gun,other_gun,button){
 			}
 		}
 		
-		//TODO: add code from V2: (button == BUTTON_BOTH_LONG_ORANGE){  and (button == BUTTON_BOTH_LONG_BLUE){
+		//TODO: add LONG PRESS from V2?
 	}
 	else if (button == 100){
 		if (this_gun.mode == MODE_DUO){
@@ -101,24 +99,20 @@ function button(this_gun,other_gun,button){
 				this_gun.state_duo = 1;
 			}else if(this_gun.state_duo == 1){
 				this_gun.state_duo = 2;
-				this_gun.initiator = true; 
-			}else if(this_gun.state_duo == 2 && this_gun.initiator == true){ //if leading the call, go through all modes
-				this_gun.state_duo = 3;
-			}else if(this_gun.state_duo == 2 && this_gun.initiator == false){  //answer an incoming call immediately and open portal on button press
-				this_gun.state_duo = 4;  
-			}else if(this_gun.state_duo == 5){ //open portal
-				this_gun.state_duo = 4;
+			}else if((this_gun.state_duo == 2 || this_gun.state_duo == 3) && other_gun.state <= -3 ){ 	
+			    this_gun.state_duo = 4; //answer an incoming call immediately and open portal on button press
+			}else if(this_gun.state_duo == 5){ //playlist advance with closed portal
+				this_gun.state_duo = 4; //open the portal
+			}else if(this_gun.state_duo == 2 && other_gun.state > -3){ 
+				this_gun.state_duo = 3; //wait at  mode 3 for other gun
 			}
 			//camera modes
 			else if (this_gun.state_duo == -1){
 				this_gun.state_duo = -2;
-				this_gun.initiator = true;
-			}else if (this_gun.state_duo == -2 && this_gun.initiator == true){
-				this_gun.state_duo = -3;
-			}else if (this_gun.state_duo == -2 && this_gun.initiator == false){
-				this_gun.state_duo = -4;
-			}else if (this_gun.state_duo == -3 && this_gun.initiator == false){
-				this_gun.state_duo = -4;  //connection established
+			}else if((this_gun.state_duo == -2 || this_gun.state_duo == -3) && other_gun.state >= 3 ){ 	
+			   this_gun.state_duo = -4;
+			}else if (this_gun.state_duo == -2){
+				this_gun.state_duo = -3;//wait at -3 for the other gun
 			}
 		}else if (this_gun.mode == MODE_SOLO){
 			if(this_gun.state_solo >= 0 && this_gun.state_solo < 4){
@@ -134,13 +128,12 @@ function button(this_gun,other_gun,button){
 	}
 	else if (button == 101){
 		if (this_gun.mode == MODE_DUO){
-			if(this_gun.state_duo == -4){ //quick swap function
-				this_gun.state_duo = 4;
-			}
-			else if (this_gun.state_duo == 0){ //start duo camera mode
+			if (this_gun.state_duo == 0){ //start duo camera mode
 				this_gun.state_duo = -1;
 			}else if(this_gun.state_duo == 4){ //go back to closed portal for effect change 
 				this_gun.state_duo = 5;  //moved to alt fire from primary to prevent mode overrun when quickly tapping fire
+			}else if(this_gun.state_duo == -4){ //quick swap function
+				this_gun.state_duo = 4;
 			}
 		}else if (this_gun.mode == MODE_SOLO){
 			if(this_gun.state_solo == 0){ //blue solo portal open
@@ -157,8 +150,7 @@ function button(this_gun,other_gun,button){
 	else this_gun.state = 0; 
 	
 	//let the other gun isntantly reply
-	other_gun_transitions(other_gun,this_gun) ;
-
+	other_gun_transitions(other_gun,this_gun);
 	
 	update();
 }
@@ -169,51 +161,82 @@ function other_gun_transitions(this_gun,other_gun){
 	this_gun.state_previous = this_gun.state_duo;
 
 	//other gun transitions
-	if (this_gun.mode == MODE_DUO){
-		if ((other_gun.state_previous >= 2 || other_gun.state_previous <= -2)  && other_gun.state == 0){
-			this_gun.state_duo = 0;
-		}
-		if (other_gun.state_previous != -2 && other_gun.state == -2 && this_gun.initiator == false){
-			this_gun.state_duo = 2;
-		}
-		if (other_gun.state_previous != 2 && other_gun.state == 2 && this_gun.initiator == false){
-			this_gun.state_duo = -2;
-		}
-		if (other_gun.state_previous != 3 && other_gun.state == 3 && this_gun.initiator == false){
-			this_gun.state_duo = -3;
-		}
-		if (other_gun.state_previous != -3 && other_gun.state == -3 && this_gun.initiator == false){
-			this_gun.state_duo = 2;
-		}	
-		if (other_gun.state_previous != -4 && other_gun.state == -4 && this_gun.initiator == true){
-			this_gun.state_duo = 4;
-			this_gun.initiator = false;
-		}
-		if (other_gun.state_previous != 4 && other_gun.state == 4 && this_gun.initiator == true){
-			this_gun.state_duo = -4;
-			this_gun.initiator = false;
-		}
-		if (other_gun.state_previous == -4 && other_gun.state >= 4 ){
-			this_gun.state_duo = -4;
-			this_gun.initiator = false;
-		}	
-	}else{
-		//code to pull out of self state
-		if ((other_gun.state_previous != other_gun.state)&& (other_gun.state <= -2)){
-			if (this_gun.state_solo <= -3 || this_gun.state_solo >= 3){
-				this_gun.state_duo = 4;
-			}else{
+	if (other_gun.state_previous != other_gun.state){
+		
+		if (this_gun.mode == MODE_DUO){
+			
+			if (other_gun.state == 0) this_gun.state_duo = 0;
+			
+			if ((other_gun.state == -2 || other_gun.state == -3 )&& this_gun.state_duo < 2){
 				this_gun.state_duo = 2;
 			}
-			this_gun.special = true;
-			this_gun.mode = MODE_DUO;
-			this_gun.state_solo = 0;
+			if ((other_gun.state == 2 || other_gun.state == 3 )&& this_gun.state_duo > -2) {
+				this_gun.state_duo = -2;
+			} 
+			
+			if (other_gun.state <= -4 && this_gun.state_duo <= 3) {
+				this_gun.state_duo = 4;
+			} 
+			if (other_gun.state >= 4 && this_gun.state_duo > -4){
+				this_gun.state_duo = -4;
+			}
+		}else{
+			//code to pull out of self state
+			if (other_gun.state <= -3){
+				if (this_gun.state_solo <= -3 || this_gun.state_solo >= 3){
+					this_gun.state_duo = 4;  //if a portal is open, go direct to projecting
+				}else{
+					this_gun.state_duo = 2; //if a portal is closed, don't blind anyone and just go to duo mode 2
+					
+				}
+				this_gun.mode = MODE_DUO;
+				this_gun.state_solo = 0;
+			}
 		}
 	}
 	
 }
 
+function update_portal(this_gun){
+
+	if (this_gun.state_duo == 4 || Math.abs(this_gun.state_solo) == 4) return "Open";
+	else if (this_gun.state_duo == 5 || this_gun.state_duo == 3 || Math.abs(this_gun.state_solo) == 3) return "Closed";
+	
+	return "Off"
+}		
+
+function update_lights(this_gun){
+
+	if (Math.abs(this_gun.state_duo) >= 3 || Math.abs(this_gun.state_solo) >= 3) return "Full";
+	else if (this_gun.state_duo == 0 && this_gun.state_solo == 0) return "Off";
+	
+	return "Partial";
+}
+
+function update_special(this_gun){
+
+	if (this_gun.state_duo == 5) return "Playlist Advance"; 
+	else if (this_gun.state_duo >= 4 && this_gun.state_previous <= -4) return "Swap To Projecting"; 
+	else if (this_gun.state_previous >= 4 && this_gun.state_duo <= -4) return "Swap To Camera"; 
+	else if (this_gun.state_duo == 4 && this_gun.state_previous == 0) return "Auto Solo to Duo";
+	else if (this_gun.state_duo == 4) return "Projecting Live Video";
+	else if (this_gun.state_duo == -4) return "Sending Live Video";
+	else if (this_gun.state_solo == 4 || this_gun.state_solo == -4) return "Projecting Solo Portal";
+	else if (this_gun.state_solo == 3 || this_gun.state_solo == -3 || this_gun.state_duo == 3) return "Projecting Closed Portal";
+	
+	return "-"; 	
+}
+
+function update_color(this_gun){
+
+	if (this_gun.state_duo > 0 || this_gun.state_solo > 0 ) return "Orange"; 
+	else if (this_gun.state_duo < 0 || this_gun.state_solo < 0 ) return"Blue"; 
+
+	return "White"; 
+}	
+
 function update(){
+
 	if (chell.mode == MODE_DUO){
 		chell_mode.innerHTML = "Duo";
 		chell_state.innerHTML = chell.state_duo;
@@ -226,72 +249,21 @@ function update(){
 		gordon_mode.innerHTML = "Duo";
 		gordon_state.innerHTML = gordon.state_duo;
 	}else if (gordon.mode == MODE_SOLO){
-		
 		gordon_mode.innerHTML = "Solo";
 		gordon_state.innerHTML = gordon.state_solo;
 	}
 	
-	if (gordon.mode == MODE_DUO){
-		if (gordon.state_duo == 5) gordon_portal.innerHTML = "Closed";  
-		else if (gordon.state_duo == 4) gordon_portal.innerHTML = "Open";
-		else if (gordon.state_duo == 3) gordon_portal.innerHTML = "Closed";
-		else if (gordon.state_duo <= 2) gordon_portal.innerHTML = "Off";
-		
-		if (gordon.state_duo == 5) gordon_special.innerHTML = "Playlist Advance"; 
-		else if (gordon.state_duo >= 4 && gordon.state_previous <= -4) gordon_special.innerHTML = "Swap To Projecting"; 
-		else if (gordon.state_previous >= 4 && gordon.state_duo <= -4) gordon_special.innerHTML = "Swap To Camera"; 
-		else if ((gordon.state_previous == 2 ||gordon.state_previous == 3 ||gordon.state_previous == 5)  && gordon.state_duo == 4) gordon_special.innerHTML = "Projector Going Live"; 
-		else if ((gordon.state_previous == -2 ||gordon.state_previous == -3)  && gordon.state_duo == -4) gordon_special.innerHTML = "Camera Going Live"; 
-		else gordon_special.innerHTML = "-"; 
-		if (gordon.special) gordon_special.innerHTML = "Auto Solo to Duo";   gordon.special = false;
-	}
+	gordon_portal.innerHTML = update_portal(gordon);
+	chell_portal.innerHTML = update_portal(chell);
 	
-	if (chell.mode == MODE_DUO){
-		if (chell.state_duo == 5) chell_portal.innerHTML = "Closed";
-		else if (chell.state_duo == 4) chell_portal.innerHTML = "Open";
-		else if (chell.state_duo == 3) chell_portal.innerHTML = "Closed";
-		else if (chell.state_duo <= 2) chell_portal.innerHTML = "Off";
-		
-		
-		if (chell.state_duo == 5) chell_special.innerHTML = "Playlist Advance"; 
-		else if (chell.state_duo >= 4 && chell.state_previous <= -4) chell_special.innerHTML = "Swap To Projecting"; 
-		else if (chell.state_previous >= 4 && chell.state_duo <= -4) chell_special.innerHTML = "Swap To Camera"; 
-		else if ((chell.state_previous == 2 ||chell.state_previous == 3||chell.state_previous == 5)  && chell.state_duo == 4) chell_special.innerHTML = "Projector Going Live"; 
-		else if ((chell.state_previous == -2 ||chell.state_previous == -3)  && chell.state_duo == -4) chell_special.innerHTML = "Camera Going Live";
-		else chell_special.innerHTML = "-"; 
-		if (chell.special) chell_special.innerHTML = "Auto Solo to Duo";   chell.special = false;
-		
-	}
-	
-	if (Math.abs(gordon.state_duo) >= 3 || Math.abs(gordon.state_solo) >= 3 ) gordon_leds.innerHTML = "Full";
-	else if (Math.abs(gordon.state_duo) > 0 || Math.abs(gordon.state_solo) > 0 ) gordon_leds.innerHTML = "Partial";
-	else if (gordon.state_duo == 0 &&gordon.state_solo == 0 ) gordon_leds.innerHTML = "Off";
+	gordon_leds.innerHTML = update_lights(gordon);
+	chell_leds.innerHTML = update_lights(chell);
 
-	if (Math.abs(chell.state_duo) >= 3 || Math.abs(chell.state_solo) >= 3) chell_leds.innerHTML = "Full";
-	else if (Math.abs(chell.state_duo) > 0 || Math.abs(chell.state_solo) > 0 ) chell_leds.innerHTML = "Partial";
-	else if (chell.state_duo == 0 &&chell.state_solo == 0) chell_leds.innerHTML = "Off";
-	
+	gordon_special.innerHTML = update_special(gordon);
+	chell_special.innerHTML = update_special(chell);
 
-	if (gordon.mode == MODE_SOLO){
-		if (Math.abs(gordon.state_solo) == 4) gordon_portal.innerHTML = "Open";
-		else if (Math.abs(gordon.state_solo) == 3) gordon_portal.innerHTML = "Closed";
-		else if (Math.abs(gordon.state_solo) <= 2) gordon_portal.innerHTML = "Off";
-	}
-	if (chell.mode == MODE_SOLO){
-		if (Math.abs(chell.state_solo) == 4) chell_portal.innerHTML = "Open";
-		else if (Math.abs(chell.state_solo) == 3) chell_portal.innerHTML = "Closed";
-		else if (Math.abs(chell.state_solo) <= 2) chell_portal.innerHTML = "Off";
-	}
-
-	if (gordon.state_duo  > 0 || gordon.state_solo > 0 ) gordon_title.style.color = "Orange"; 
-	else if (gordon.state_duo < 0 || gordon.state_solo < 0 ) gordon_title.style.color = "Blue"; 
-	else if (gordon.state_duo == 0 &&gordon.state_solo == 0 ) gordon_title.style.color = "White"; 
-
-	if (chell.state_duo  > 0 || chell.state_solo > 0 ) chell_title.style.color = "Orange"; 
-	else if (chell.state_duo < 0 || chell.state_solo < 0 ) chell_title.style.color = "Blue"; 
-	else if (chell.state_duo == 0 &&chell.state_solo == 0 )	chell_title.style.color = "White"; 
-	
-
+	gordon_title.style.color = update_color(gordon);
+	chell_title.style.color = update_color(chell);
 }
 
 </script>
