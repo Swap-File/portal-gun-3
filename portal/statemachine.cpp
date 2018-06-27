@@ -20,22 +20,21 @@ void local_state_engine(int button, this_gun_struct& this_gun, other_gun_struct&
 	}
 	
 	//button event transitions
-	if( button == BUTTON_RESET){
+	if(button == BUTTON_RESET){
 		this_gun.state_solo = 0; //reset self state
 		this_gun.state_duo = 0; //reset local state
+		this_gun.skip_states = false; 
 		this_gun.mode = MODE_DUO; //reset to duo mode for common use case
 	}
 	else if(button == BUTTON_MODE_TOGGLE){
-		if (this_gun.state_solo == 0 && this_gun.state_duo == 0){//only allow mode toggle when in mode zero
+		if (this_gun.state_solo == 0 && this_gun.state_duo == 0){//only allow mode toggle when completely off
 			if (this_gun.mode == MODE_DUO){
 				this_gun.mode = MODE_SOLO;
 			}else if (this_gun.mode == MODE_SOLO){
 				this_gun.mode = MODE_DUO;
 			}
 		}
-		
-		//TODO: add LONG PRESS from V2?
-	}
+	}//TODO: add LONG PRESS from V2?
 	else if (button == BUTTON_PRIMARY_FIRE){
 		if (this_gun.mode == MODE_DUO){
 			//projector modes
@@ -43,7 +42,7 @@ void local_state_engine(int button, this_gun_struct& this_gun, other_gun_struct&
 				this_gun.state_duo = 1;
 			}else if(this_gun.state_duo == 1){
 				this_gun.state_duo = 2;
-			}else if((this_gun.state_duo == 2 || this_gun.state_duo == 3) && other_gun.state <= -3 ){ 	
+			}else if((this_gun.state_duo == 2 || this_gun.state_duo == 3) && (other_gun.state <= -3 || this_gun.skip_states)){ 	
 			    this_gun.state_duo = 4; //answer an incoming call immediately and open portal on button press
 			}else if(this_gun.state_duo == 5){ //playlist advance with closed portal
 				this_gun.state_duo = 4; //open the portal
@@ -92,33 +91,27 @@ void local_state_engine(int button, this_gun_struct& this_gun, other_gun_struct&
 
 	//other gun transitions
 	if (other_gun.state_previous != other_gun.state){
-		
 		if (this_gun.mode == MODE_DUO){
-			
-			if (other_gun.state == 0) this_gun.state_duo = 0;
-			
-			if ((other_gun.state == -2 || other_gun.state == -3 )&& this_gun.state_duo < 2){
+			if (other_gun.state == 0){
+				this_gun.state_duo = 0;
+				this_gun.skip_states = false; 
+			}else if ((other_gun.state == -2 || other_gun.state == -3) && this_gun.state_duo < 2){
 				this_gun.state_duo = 2;
-			}
-			if ((other_gun.state == 2 || other_gun.state == 3 )&& this_gun.state_duo > -2) {
+				this_gun.skip_states = true; 
+			}else if ((other_gun.state == 2 || other_gun.state == 3) && this_gun.state_duo > -2){
 				this_gun.state_duo = -2;
-			} 
-			
-			if (other_gun.state <= -4 && this_gun.state_duo <= 3) {
-				this_gun.state_duo = 4;
-			} 
-			if (other_gun.state >= 4 && this_gun.state_duo > -4){
+			}else if (other_gun.state <= -4 && this_gun.state_duo == 3){ //special case
+				this_gun.state_duo = 4; //only bump into state 4 from 3, since 3 & 4 turn on the projector, below 3 the portal is off
+			}else if (other_gun.state >= 4 && this_gun.state_duo > -4){
 				this_gun.state_duo = -4;
 			}
-		}else{
-			//code to pull out of self state
+		}else if (this_gun.mode == MODE_SOLO){  //code to pull out of solo states
 			if (other_gun.state <= -3){
 				if (this_gun.state_solo <= -3 || this_gun.state_solo >= 3){
 					this_gun.state_duo = 4;  //if a portal is open, go direct to projecting
 				}else{
 					this_gun.state_duo = 2; //if a portal is closed, don't blind anyone and just go to duo mode 2
-					
-				}
+				}			
 				this_gun.mode = MODE_DUO;
 				this_gun.state_solo = 0;
 			}
