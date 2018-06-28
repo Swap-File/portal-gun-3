@@ -3,9 +3,9 @@ Gun:
 
 [Raspberry Pi 3B+](https://www.raspberrypi.org/) + [PicoBit Projector](http://www.projectorcentral.com/Celluon-PicoBit.htm) + Pi NoIR Camera + 3W IR Emitters
 
-5Ghz Bridge via hostapd + [Fe-Pi Audio Z I2S Sound Card](https://fe-pi.com/) + USB Bluetooth (Onboard BT is Unreliable) + ADS1115 for Battery Meter and Temp Sensing
+5Ghz Bridge via hostapd + [Fe-Pi Audio Z I2S Sound Card](https://fe-pi.com/) + USB Bluetooth (Onboard BT is Unreliable)
 
-[Pololu MinIMU-9 v2](https://www.pololu.com/product/1268) 
+[Pololu MinIMU-9 v2](https://www.pololu.com/product/1268) + ADS1115 for Battery Meter and Temp Sensing
 
 4S 5000mAh Lipo + 3 Amp 5v regulator (3x, one for Projector, one for CPU, one for Lighting and Sound)
 
