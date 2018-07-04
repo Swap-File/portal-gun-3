@@ -33,11 +33,11 @@ struct this_gun_struct {
 	int  fan_pwm = 1024;
 	bool connected = false; 
 	
-	int8_t playlist_solo[playlist_solo_SIZE]={GST_VIDEOTESTSRC,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+	int8_t playlist_solo[playlist_solo_SIZE]={GST_LIBVISUAL_INFINITE,GST_LIBVISUAL_JESS,GST_GOOM,GST_GOOM2K1,GST_LIBVISUAL_JAKDAW ,GST_LIBVISUAL_OINKSIE,-1,-1,-1,-1};
 	int8_t playlist_solo_index = 1;
 	int8_t effect_solo = GST_VIDEOTESTSRC;
 
-	int8_t playlist_duo[playlist_duo_SIZE]={GST_NORMAL,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+	int8_t playlist_duo[playlist_duo_SIZE]={GST_NORMAL,GST_EDGETV,GST_GLHEAT,GST_REVTV,GST_GLCUBE,GST_AGINGTV,-1,-1,-1,-1};
 	int8_t playlist_duo_index = 1;
 	int8_t effect_duo = GST_NORMAL;
 	

@@ -676,9 +676,9 @@ int main(int argc, char *argv[]){
 	"audioin. ! libvisual_oinksie  ! videosink. "
 	"audioin. ! goom               ! videosink. "
 	"audioin. ! goom2k1            ! videosink. "
-	"funnel name=videosink ! video/x-raw,width=320,height=240,framerate=30/1 ! queue ! "
+	"funnel name=videosink ! video/x-raw,width=320,height=240,framerate=30/1 ! "
 	"glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480 ! "
-	"glfilterapp name=grabtexture ! fakesink sync=true async=false");
+	"glfilterapp name=grabtexture ! fakesink sync=false async=false");
 	
 	//movie pipeline, has all videos as long long video, chapter start and end times stored in gstvideo.h
 	//it doesnt work well to load and unload various input files due to the 
