@@ -1,6 +1,6 @@
 #include "portal.h"
 #include "pipecontrol.h"
-
+#include <sys/resource.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -43,11 +43,18 @@ void pipecontrol_cleanup(void){
 
 void pipecontrol_setup(){
 	
-	piHiPri(90);
+	//let this priority get inherited to the children
+	setpriority(PRIO_PROCESS, getpid(), -10);
+
     system("/home/pi/portal/fbvideo/fbvideo &");
     delay(2000);
 	system("/home/pi/portal/gstvideo/start.sh &");
 	delay(8000);
+	
+system("LD_LIBRARY_PATH=/usr/local/lib mjpg_streamer -i 'input_file.so -f /var/www/html/tmp -n snapshot.jpg' -o 'output_http.so -w /usr/local/www' &");
+	
+	//kick the core logic up to realtime for faster bit banging
+	piHiPri(40);
 	
 	gstvideo_fp = fopen("/home/pi/GSTVIDEO_IN_PIPE", "w");
 	int gstvideo_fp_int = fileno(gstvideo_fp);
@@ -73,7 +80,6 @@ void pipecontrol_setup(){
 		exit(-1);
 	}
 		
-	system("LD_LIBRARY_PATH=/usr/local/lib mjpg_streamer -i 'input_file.so -f /var/www/html/tmp -n snapshot.jpg' -o 'output_http.so -w /usr/local/www' &");
 	
 	if(getenv("GORDON")) 		ping_fp = popen("ping 192.168.3.21", "r");
 	else if(getenv("CHELL")) 	ping_fp = popen("ping 192.168.3.20", "r");

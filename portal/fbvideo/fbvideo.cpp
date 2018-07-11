@@ -7,7 +7,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <fcntl.h>
-
+#include <sys/resource.h>
 GstElement *outputfb, *textoverlay, *inputselector;
 GstPad *inputpads[2];
 
@@ -172,7 +172,8 @@ int main(int argc, char *argv[]) {
 	}else{
 		strcpy(user_name, "UNKNOWN");
 	}
-	
+	setpriority(PRIO_PROCESS, getpid(), 10);
+
 	const char *arg1_gst[]  = {"gstvideo"};
 	const char *arg2_gst[]  = {"--gst-disable-registry-update"};
 	const char *arg3_gst[]  = {"--gst-debug-level=2"};

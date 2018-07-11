@@ -1,7 +1,7 @@
 #define GST_USE_UNSTABLE_API  //if you're not out of control you're not in control
 
 #include "gstvideo.h"
-
+#include <sys/resource.h>
 #include <gst/gst.h>
 #include <gst/gl/gl.h>
 #include <gst/gl/x11/gstgldisplay_x11.h>
@@ -385,7 +385,8 @@ void start_pipeline(){
 		}
 		else if (video_mode_current == GST_RPICAMSRC ) {
 
-			kill(raspivid_PID,SIGHUP);  //stop the camera
+		kill(raspivid_PID,SIGHUP);  //stop the camera
+
 			printf("PAUSE RPICAM!\n\n");
 		}else{//null everything else	
 			printf("NULL THE REST!\n\n");
@@ -420,7 +421,9 @@ void start_pipeline(){
 		gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_PLAYING);	
 
 	}else{
-		kill(raspivid_PID,SIGCONT);  //start the camera
+
+	kill(raspivid_PID,SIGCONT);  //start the camera
+
 	}
 	video_mode_current = video_mode_requested;
 	
@@ -538,6 +541,24 @@ static gboolean idle_loop (gpointer data) {
 
 int main(int argc, char *argv[]){
 	
+	setpriority(PRIO_PROCESS, getpid(), -10);
+
+	if(getenv("GORDON") || getenv("CHELL")){
+		FILE *pidof_fp;
+		char tempbuf[100];
+		pidof_fp = popen("pidof -s gst-launch-1.0", "r");
+		fgets(tempbuf, 100, pidof_fp);
+		sscanf(tempbuf,"%d\n",&raspivid_PID);
+		printf("RaspiVid PID: %d\n",raspivid_PID);
+		fclose(pidof_fp);
+		nanosleep((const struct timespec[]){{0, 100000000L}}, NULL);
+		kill(raspivid_PID,SIGHUP);  //stop the camera
+	}
+	else {
+		printf("SET THE GORDON OR CHELL ENVIRONMENT VARIABLE!");
+		exit(1);
+	}
+	
 	if (argc < 2){
 		printf("GSTVIDEO: No Parent Pid Supplied, EoS signaling disabled!\n");
 	}else{
@@ -618,23 +639,8 @@ int main(int argc, char *argv[]){
 	//I've noticed that if too many pipelines get destroyed (gst_object_unref) and recreated  gstreamer & x11 will eventually crash with context errors
 	//this can switch between pipelines in 5-20ms on a Pi3, which is quick enough for the human eye
 
-		//camera launch 192.168.1.20 gordon    192.168.1.21 chell
-	if(getenv("GORDON") || getenv("CHELL")){
-		FILE *pidof_fp;
-		char tempbuf[100];
-		pidof_fp = popen("pidof -s gst-launch-1.0", "r");
-		fgets(tempbuf, 100, pidof_fp);
-		sscanf(tempbuf,"%d\n",&raspivid_PID);
-		printf("RaspiVid PID: %d\n",raspivid_PID);
-		fclose(pidof_fp);
-		
-		kill(raspivid_PID,SIGHUP);  //stop the camera
-	}
-	else {
-		printf("SET THE GORDON OR CHELL ENVIRONMENT VARIABLE!");
-		exit(1);
-	}
-		
+	//camera launch 192.168.1.20 gordon    192.168.1.21 chell
+			
 	//test patterns
 	load_pipeline(GST_BLANK ,(char *)"videotestsrc pattern=2 ! video/x-raw,width=640,height=480,framerate=(fraction)30/1 ! queue ! glupload ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true");
 	load_pipeline(GST_VIDEOTESTSRC ,(char *)"videotestsrc ! video/x-raw,width=640,height=480,framerate=(fraction)30/1 ! queue ! glupload ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true");
