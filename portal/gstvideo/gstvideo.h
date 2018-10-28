@@ -32,8 +32,8 @@
 #define GST_WARPTV 23
 #define GST_SHAGADELICTV 24
 #define GST_VERTIGOTV 25
-//#define GST_KALEIDOSCOPE 26
-//#define GST_MARBLE 27
+#define GST_AATV 26
+#define GST_CACATV 27
 #define GST_RIPPLETV 28 
 #define GST_EDGETV 29
 #define GST_LAST_TV_EFFECT 29

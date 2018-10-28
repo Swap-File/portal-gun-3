@@ -384,9 +384,7 @@ void start_pipeline(){
 			movieisplaying = false;
 		}
 		else if (video_mode_current == GST_RPICAMSRC ) {
-
-		kill(raspivid_PID,SIGHUP);  //stop the camera
-
+			kill(raspivid_PID,SIGHUP);  //stop the camera
 			printf("PAUSE RPICAM!\n\n");
 		}else{//null everything else	
 			printf("NULL THE REST!\n\n");
@@ -421,9 +419,7 @@ void start_pipeline(){
 		gst_element_set_state (GST_ELEMENT (pipeline_active), GST_STATE_PLAYING);	
 
 	}else{
-
-	kill(raspivid_PID,SIGCONT);  //start the camera
-
+		kill(raspivid_PID,SIGCONT);  //start the camera
 	}
 	video_mode_current = video_mode_requested;
 	
@@ -540,10 +536,9 @@ static gboolean idle_loop (gpointer data) {
 
 
 int main(int argc, char *argv[]){
-	
-	setpriority(PRIO_PROCESS, getpid(), -10);
-
+		
 	if(getenv("GORDON") || getenv("CHELL")){
+		//get the PID for the camera
 		FILE *pidof_fp;
 		char tempbuf[100];
 		pidof_fp = popen("pidof -s gst-launch-1.0", "r");
@@ -551,13 +546,18 @@ int main(int argc, char *argv[]){
 		sscanf(tempbuf,"%d\n",&raspivid_PID);
 		printf("RaspiVid PID: %d\n",raspivid_PID);
 		fclose(pidof_fp);
-		nanosleep((const struct timespec[]){{0, 100000000L}}, NULL);
-		kill(raspivid_PID,SIGHUP);  //stop the camera
 	}
 	else {
 		printf("SET THE GORDON OR CHELL ENVIRONMENT VARIABLE!");
 		exit(1);
 	}
+	
+	//stop the camera
+	kill(raspivid_PID,SIGHUP);  
+
+	//set priority for the opengl engine and video output
+	
+	setpriority(PRIO_PROCESS, getpid(), -10);
 	
 	if (argc < 2){
 		printf("GSTVIDEO: No Parent Pid Supplied, EoS signaling disabled!\n");
@@ -638,18 +638,16 @@ int main(int argc, char *argv[]){
 	//preload all pipelines we will be switching between.  This allows faster switching than destroying and recrearting the pipelines
 	//I've noticed that if too many pipelines get destroyed (gst_object_unref) and recreated  gstreamer & x11 will eventually crash with context errors
 	//this can switch between pipelines in 5-20ms on a Pi3, which is quick enough for the human eye
-
-	//camera launch 192.168.1.20 gordon    192.168.1.21 chell
-			
+	
 	//test patterns
-	load_pipeline(GST_BLANK ,(char *)"videotestsrc pattern=2 ! video/x-raw,width=640,height=480,framerate=(fraction)30/1 ! queue ! glupload ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true");
+	load_pipeline(GST_BLANK ,(char *)"videotestsrc pattern=2 ! video/x-raw,width=640,height=480,framerate=(fraction)1/1 ! queue ! glupload ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true");
 	load_pipeline(GST_VIDEOTESTSRC ,(char *)"videotestsrc ! video/x-raw,width=640,height=480,framerate=(fraction)30/1 ! queue ! glupload ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true");
 	load_pipeline(GST_VIDEOTESTSRC_CUBED ,(char *)"videotestsrc ! video/x-raw,width=640,height=480,framerate=(fraction)30/1 ! queue ! glupload ! glfiltercube ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=true");
 	
 	//normal
 	load_pipeline(GST_NORMAL ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
-		
-	//cpu effects
+	
+	//cpu effects drop framerate to 20 from 30 due to cpu usage
 	load_pipeline(GST_RADIOACTV    ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! radioactv     ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_REVTV        ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! revtv         ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_AGINGTV      ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! agingtv       ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
@@ -660,6 +658,8 @@ int main(int argc, char *argv[]){
 	load_pipeline(GST_RIPPLETV     ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! rippletv      ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_EDGETV       ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! edgetv        ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 	load_pipeline(GST_STREAKTV     ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! streaktv      ! glupload ! glcolorconvert ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
+	load_pipeline(GST_AATV         ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videoconvert ! queue ! aatv rain-mode=0 ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
+	load_pipeline(GST_CACATV       ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! jpegdec ! queue ! videorate ! video/x-raw,framerate=20/1 ! videoconvert ! queue ! cacatv ! glupload ! glcolorconvert ! glcolorscale ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
 
 	//gl effects 
 	load_pipeline(GST_GLCUBE   ,(char *)"udpsrc port=9000 caps=application/x-rtp retrieve-sender-address=false ! rtpjpegdepay ! queue ! jpegdec ! glupload ! glcolorconvert ! glfiltercube      ! video/x-raw(memory:GLMemory),width=640,height=480,format=RGBA ! glfilterapp name=grabtexture ! fakesink sync=false");
